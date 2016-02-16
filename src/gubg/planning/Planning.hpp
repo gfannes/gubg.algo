@@ -131,6 +131,7 @@ namespace gubg { namespace planning {
                         bool all_leafs_are_planned;
                         Day max_stop;
                         dep->get_max_stop(all_leafs_are_planned, max_stop);
+                        L("This task depends on " << dep->fullName() << STREAM(all_leafs_are_planned, max_stop));
                         MSS(all_leafs_are_planned, L("Please make sure the dependecies are tree-like: " << task.fullName() << " depends on " << dep->fullName() << " (" << dep.get() << ") " << " but the latter has no stop time yet."));
                         if (max_dep_startday < max_stop)
                             max_dep_startday = max_stop;

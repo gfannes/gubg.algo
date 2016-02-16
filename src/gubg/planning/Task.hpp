@@ -294,6 +294,7 @@ namespace gubg { namespace planning {
 			}
             void addDependency(const Ptr &ptr)
             {
+                S("Task");L(STREAM(dependencies.size()) << " adding " << ptr->fullName() << " to " << fullName());
                 dependencies.push_back(ptr);
             }
 			void setDeadline(Day day)
