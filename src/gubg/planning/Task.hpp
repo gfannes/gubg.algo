@@ -14,15 +14,15 @@
 namespace gubg { namespace planning {
 
 	class Task;
-	typedef std::shared_ptr<Day> Deadline;
+	typedef std::shared_ptr<Day> Day_ptr;
 	struct CompareDeadlines
 	{
-		bool operator()(Deadline lhs, Deadline rhs)
+		bool operator()(Day_ptr lhs, Day_ptr rhs)
 		{
 			return *lhs < *rhs;
 		}
 	};
-	typedef std::multimap<Deadline, std::shared_ptr<Task>, CompareDeadlines> TasksPerDeadline;
+	typedef std::multimap<Day_ptr, std::shared_ptr<Task>, CompareDeadlines> TasksPerDeadline;
 
 	namespace priv
 	{
@@ -90,11 +90,43 @@ namespace gubg { namespace planning {
 					{
 					}
 		};
+		class DistributeStartdate
+		{
+			public:
+				template <typename NPtr, typename P>
+					bool open(NPtr ptr, P &p) const
+					{
+						auto &n = *ptr;
+						if (!n.startdate && !p.empty())
+							n.startdate = p.back()->startdate;
+						return true;
+					}
+				template <typename NPtr, typename P>
+					void close(NPtr ptr, P &p) const
+					{
+					}
+		};
+		class DistributeMode
+		{
+			public:
+				template <typename NPtr, typename P>
+					bool open(NPtr ptr, P &p) const
+					{
+						auto &n = *ptr;
+						if (n.mode == Mode::Unset)
+                            n.mode = (!p.empty() ? p.back()->mode : Mode::Async);
+						return true;
+					}
+				template <typename NPtr, typename P>
+					void close(NPtr ptr, P &p) const
+					{
+					}
+		};
 		class CheckDeadlines
 		{
 			public:
 				mutable bool same;
-				mutable Deadline deadline;
+				mutable Day_ptr deadline;
 				CheckDeadlines():same(true){}
 				template <typename NPtr, typename P>
 					bool open(NPtr ptr, P &p) const
@@ -196,10 +228,12 @@ namespace gubg { namespace planning {
 			Sweat cumulSweat;
 			Day start;
 			Day stop;
-			Deadline deadline;
+			Day_ptr deadline;
+			Day_ptr startdate;
 			WorkersPtr workers;
 			Childs childs;
 			WPtr parent;
+            Mode mode = Mode::Unset;
 
 			static Ptr create(Name n){return Ptr(new Task(n));}
 
@@ -227,6 +261,18 @@ namespace gubg { namespace planning {
 				deadline.reset(new Day(day));
 				assert(invariants_());
 			}
+			void setStartdate(Day day)
+			{
+				assert(invariants_());
+				startdate.reset(new Day(day));
+				assert(invariants_());
+			}
+            void setMode(Mode m)
+            {
+   				assert(invariants_());
+				mode = m;
+				assert(invariants_());
+            }
 			void setWorkers(Workers ws)
 			{
 				assert(invariants_());
@@ -247,6 +293,14 @@ namespace gubg { namespace planning {
 			void distributeDeadlines()
 			{
 				tree::dfs::iterate_ptr(this, priv::DistributeDeadline());
+			}
+			void distributeStartdates()
+			{
+				tree::dfs::iterate_ptr(this, priv::DistributeStartdate());
+			}
+			void distributeModes()
+			{
+				tree::dfs::iterate_ptr(this, priv::DistributeMode());
 			}
 			void aggregateSweat()
 			{

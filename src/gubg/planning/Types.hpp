@@ -4,6 +4,7 @@
 #include <string>
 #include <vector>
 #include <memory>
+#include <ostream>
 
 namespace gubg { namespace planning {
 
@@ -14,6 +15,18 @@ namespace gubg { namespace planning {
 	typedef double Efficiency;
 
 	enum class Format {Text, Html};
+    enum class Mode {Unset, Async, Sync};
+    inline std::ostream &operator<<(std::ostream &os, Mode m)
+    {
+        switch (m)
+        {
+            case Mode::Unset: os << "Unset mode"; break;
+            case Mode::Async: os << "Async mode"; break;
+            case Mode::Sync: os << "Sync mode"; break;
+            default: os << "Unknown mode"; break;
+        }
+        return os;
+    }
 
 } }
 

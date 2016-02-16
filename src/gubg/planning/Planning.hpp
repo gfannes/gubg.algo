@@ -17,6 +17,9 @@ namespace gubg { namespace planning {
 
 	class Planning
 	{
+        private:
+            static constexpr const char *logns = "Planning";
+
 		public:
 			struct TaskPart
 			{
@@ -61,6 +64,8 @@ namespace gubg { namespace planning {
 				MSS_BEGIN(ReturnCode);L(STREAM(taskTree));
 
 				taskTree.distributeDeadlines();
+				taskTree.distributeStartdates();
+				taskTree.distributeModes();
 				taskTree.distributeWorkers();
 				taskTree.aggregateSweat();
 
@@ -75,17 +80,30 @@ namespace gubg { namespace planning {
 
 			ReturnCode planTreeASAP(Task &task)
 			{
-				MSS_BEGIN(ReturnCode);L(STREAM(task.fullName()));
+				MSS_BEGIN(ReturnCode, logns);L(STREAM(task.fullName()));
 				auto leafTasks = tree::dfs::leafs(task);
 				L("I found " << leafTasks.size() << " leaf tasks");
+
+                Day_ptr eta;
+                Mode mode = Mode::Unset;
 				for (auto leaf: leafTasks)
-					MSS(planLeafASAP(*leaf));
+                {
+                    auto &task = *leaf;
+                    if (task.mode == Mode::Async && mode != task.mode)
+                        //When switching back to async planning mode, we reset the estimated time of arrival
+                        eta.reset();
+                    mode = task.mode;
+					MSS(planLeafASAP(task, eta));
+                }
+
+                if (!!eta)
+                    L(STREAM(*eta));
 				MSS_END();
 			}
 
-			ReturnCode planLeafASAP(Task &task)
+			ReturnCode planLeafASAP(Task &task, Day_ptr &eta)
 			{
-				MSS_BEGIN(ReturnCode);L(STREAM(task.fullName()));
+				MSS_BEGIN(ReturnCode, logns);L(STREAM(task.fullName(), task.mode));
 
 				MSS(task.childs.empty());
 
@@ -93,18 +111,28 @@ namespace gubg { namespace planning {
 				const auto workers = *task.workers;
 
 				Sweat sweat = task.cumulSweat;
-				gubg::OnlyOnce setStart;
 				while (sweat > eps_())
 				{
 					Worker worker;
-					auto dayPlanning = getFirstAvailableDayPlanning_(worker, workers);
+                    const Day *startdate = nullptr;
+                    if (task.mode == Mode::Sync)
+                        startdate = eta.get();
+                    if (!startdate)
+                        startdate = task.startdate.get();
+                    else if (!!task.startdate && *startdate < *task.startdate)
+                        startdate = task.startdate.get();
+					auto dayPlanning = getFirstAvailableDayPlanning_(worker, workers, startdate);
 					MSS(mss::on_fail(dayPlanning != 0, ReturnCode::NotEnoughSweatAvailable));
 					auto taskPart = dayPlanning->addTask(task, sweat);
 					MSS(!!taskPart);
 					if (!task.start.isValid())
 						task.start = dayPlanning->day;
 					task.stop = dayPlanning->day;
-					L("Assigned " << taskPart->sweat << " to " << worker << " on " << dayPlanning->day);
+                    if (!eta)
+                        eta.reset(new Day(task.stop));
+                    if (*eta < task.stop)
+                        *eta = task.stop;
+					L("Assigned " << taskPart->sweat << " to " << worker << " on " << dayPlanning->day << STREAM(*eta));
 				}
 
 				MSS_END();
@@ -269,7 +297,7 @@ namespace gubg { namespace planning {
 			typedef std::map<Worker, DayPlannings> DayPlanningsPerWorker;
 			DayPlanningsPerWorker dayPlanningsPerWorker_;
 
-			DayPlanning *getFirstAvailableDayPlanning_(Worker &w, const Workers &workers)
+			DayPlanning *getFirstAvailableDayPlanning_(Worker &w, const Workers &workers, const Day *startdate)
 			{
 				DayPlanning *res = 0;
 				for (const auto &worker: workers)
@@ -280,20 +308,27 @@ namespace gubg { namespace planning {
 					auto &dayPlannings = it->second;
 					for (auto &p: dayPlannings)
 					{
-						if (p.second.hasSweatAvailable())
+                        const Day &day = p.first;
+                        DayPlanning &day_planning = p.second;
+
+                        if (!!startdate && day < *startdate)
+                            //This is too soon for this task
+                            continue;
+
+						if (day_planning.hasSweatAvailable())
 						{
 							if (!res)
 							{
 								//We have nothing yet, we take this one as a starting point
-								res = &p.second;
+								res = &day_planning;
 								w = worker;
 							}
 							else
 							{
 								//We already have a potential DayPlanning, check if this is better
-								if (p.second.day < res->day)
+								if (day_planning.day < res->day)
 								{
-									res = &p.second;
+									res = &day_planning;
 									w = worker;
 								}
 							}
