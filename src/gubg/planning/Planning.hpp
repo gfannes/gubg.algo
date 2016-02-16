@@ -59,21 +59,24 @@ namespace gubg { namespace planning {
 				return true;
 			}
 
-			ReturnCode plan(Task &taskTree)
+			ReturnCode plan(Task &full_task_tree)
 			{
-				MSS_BEGIN(ReturnCode);L(STREAM(taskTree));
+				MSS_BEGIN(ReturnCode);L(STREAM(full_task_tree));
 
-				taskTree.distributeDeadlines();
-				taskTree.distributeStartdates();
-				taskTree.distributeModes();
-				taskTree.distributeWorkers();
-				taskTree.aggregateSweat();
+				full_task_tree.distributeDeadlines();
+				full_task_tree.distributeStartdates();
+				full_task_tree.distributeModes();
+				full_task_tree.distributeWorkers();
+				full_task_tree.aggregateSweat();
 
-				auto tpd = taskTree.tasksPerDeadline();
+				auto tpd = full_task_tree.tasksPerDeadline();
 				for (auto &p: tpd)
-					MSS(planTreeASAP(*p.second));
+                {
+                    auto &task_tree = *p.second;
+					MSS(planTreeASAP(task_tree));
+                }
 
-				taskTree.aggregateStartStop();
+				full_task_tree.aggregateStartStop();
 
 				MSS_END();
 			}
@@ -121,6 +124,20 @@ namespace gubg { namespace planning {
                         startdate = task.startdate.get();
                     else if (!!task.startdate && *startdate < *task.startdate)
                         startdate = task.startdate.get();
+
+                    Day max_dep_startday;
+                    for (const auto &dep: task.dependencies)
+                    {
+                        bool all_leafs_are_planned;
+                        Day max_stop;
+                        dep->get_max_stop(all_leafs_are_planned, max_stop);
+                        MSS(all_leafs_are_planned, L("Please make sure the dependecies are tree-like: " << task.fullName() << " depends on " << dep->fullName() << " (" << dep.get() << ") " << " but the latter has no stop time yet."));
+                        if (max_dep_startday < max_stop)
+                            max_dep_startday = max_stop;
+                    }
+                    if (!startdate || *startdate < max_dep_startday)
+                        startdate = &max_dep_startday;
+
 					auto dayPlanning = getFirstAvailableDayPlanning_(worker, workers, startdate);
 					MSS(mss::on_fail(dayPlanning != 0, ReturnCode::NotEnoughSweatAvailable));
 					auto taskPart = dayPlanning->addTask(task, sweat);
@@ -132,8 +149,9 @@ namespace gubg { namespace planning {
                         eta.reset(new Day(task.stop));
                     if (*eta < task.stop)
                         *eta = task.stop;
-					L("Assigned " << taskPart->sweat << " to " << worker << " on " << dayPlanning->day << STREAM(*eta));
+					/* L("Assigned " << taskPart->sweat << " to " << worker << " on " << dayPlanning->day << STREAM(*eta)); */
 				}
+                L("Task " << task.fullName() << " (" << &task << ")" << " will end on " << task.stop);
 
 				MSS_END();
 			}

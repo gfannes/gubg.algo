@@ -110,17 +110,27 @@ namespace gubg { namespace planning {
 		{
 			public:
 				template <typename NPtr, typename P>
-					bool open(NPtr ptr, P &p) const
+					bool open(NPtr ptr, P &p)
 					{
 						auto &n = *ptr;
 						if (n.mode == Mode::Unset)
+                            //When no mode was set, we take the mode from the parent, if any
                             n.mode = (!p.empty() ? p.back()->mode : Mode::Async);
+
+                        n.mode_transition = (n.mode != mode_);
+
+                        const auto is_leaf = n.childs.empty();
+                        if (is_leaf)
+                            mode_ = n.mode;
+
 						return true;
 					}
 				template <typename NPtr, typename P>
-					void close(NPtr ptr, P &p) const
+					void close(NPtr ptr, P &p)
 					{
 					}
+            private:
+                Mode mode_ = Mode::Unset;
 		};
 		class CheckDeadlines
 		{
@@ -186,6 +196,30 @@ namespace gubg { namespace planning {
 							parent.stop = n.stop;
 					}
 		};
+		class MaxStop
+		{
+			public:
+                bool all_leafs_are_planned = true;
+                Day stop;
+
+				template <typename NPtr, typename P>
+					bool open(NPtr ptr, P &p)
+					{
+						return true;
+					}
+				template <typename NPtr, typename P>
+					void close(NPtr ptr, P &p)
+					{
+						auto &n = *ptr;
+                        const bool is_leaf = n.childs.empty();
+                        if (is_leaf)
+                        {
+                            all_leafs_are_planned && (all_leafs_are_planned = n.stop.isValid());
+                            if (!stop.isValid() || stop < n.stop)
+                                stop = n.stop;
+                        }
+					}
+		};
 		class CollectTasksPerDeadline
 		{
 			public:
@@ -221,6 +255,7 @@ namespace gubg { namespace planning {
 			typedef std::weak_ptr<Task> WPtr;
 			typedef std::shared_ptr<Task> Child;
 			typedef std::vector<Child> Childs;
+            typedef std::vector<Ptr> Dependencies;
 
 			Name name;
 			Category category;
@@ -234,6 +269,8 @@ namespace gubg { namespace planning {
 			Childs childs;
 			WPtr parent;
             Mode mode = Mode::Unset;
+            bool mode_transition = false;
+            Dependencies dependencies;
 
 			static Ptr create(Name n){return Ptr(new Task(n));}
 
@@ -255,6 +292,10 @@ namespace gubg { namespace planning {
 				assert(invariants_());
 				return child;
 			}
+            void addDependency(const Ptr &ptr)
+            {
+                dependencies.push_back(ptr);
+            }
 			void setDeadline(Day day)
 			{
 				assert(invariants_());
@@ -300,7 +341,8 @@ namespace gubg { namespace planning {
 			}
 			void distributeModes()
 			{
-				tree::dfs::iterate_ptr(this, priv::DistributeMode());
+                priv::DistributeMode ftor;
+				tree::dfs::iterate_ptr(this, ftor);
 			}
 			void aggregateSweat()
 			{
@@ -309,6 +351,13 @@ namespace gubg { namespace planning {
 			void aggregateStartStop()
 			{
 				tree::dfs::iterate_ptr(this, priv::AggregateStartStop());
+			}
+			void get_max_stop(bool &all_leafs_are_planned, Day &day)
+			{
+                priv::MaxStop max_stop;
+				tree::dfs::iterate_ptr(this, max_stop);
+                all_leafs_are_planned = max_stop.all_leafs_are_planned;
+                day = max_stop.stop;
 			}
 
 			TasksPerDeadline tasksPerDeadline()
