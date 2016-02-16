@@ -461,7 +461,7 @@ namespace gubg { namespace planning {
 					//Add the load for this day
 					{
 						auto tr = table.tag("tr");
-						tr.tag("td") << "load";
+						tr.tag("td").attr("bgcolor", "grey") << "LOAD";
 						for (auto d = start; d <= stop; ++d)
 						{
 							auto it = dayPlannings.find(d);
@@ -472,20 +472,42 @@ namespace gubg { namespace planning {
 							{
 								const auto sweat = it->second.sweat - it->second.availableSweat();
 								if (sweat <= 0.2)
-									td.attr("bgcolor", "green");
+									td.attr("bgcolor", "blue");
 								else if (sweat <= 0.5)
 									td.attr("bgcolor", "orange");
 								else
-									td.attr("bgcolor", "red");
+									td.attr("bgcolor", "black");
 							}
 							td << "&nbsp;";
 						}
 					}
 
+                    std::string task_basename;
+                    size_t stripe_ix = 1;
+                    const char *greens[2] = {"green", "darkgreen"};
+                    const char *reds[2] = {"red", "darkred"};
+                    const char *whites[2] = {"white", "lightgrey"};
+
 					for (auto task: tasks)
 					{
+                        const unsigned int nr_levels = 4;
+                        const auto basename = task->baseName(nr_levels);
+                        const auto restname = task->baseName(-1, nr_levels);
+
+                        //Handle striping
+                        if (basename != task_basename)
+                        {
+                            task_basename = basename;
+                            stripe_ix = (stripe_ix+1)%2;
+                        }
+
 						auto tr = table.tag("tr");
-						tr.tag("td").attr("nowrap", "") << task->fullName();
+                        {
+                            auto cell = tr.tag("td");
+                            cell.attr("nowrap", "").attr("bgcolor", whites[stripe_ix]);
+                            { cell.tag("b") << basename; }
+                            { cell << restname; }
+                        }
 						for (auto d = start; d <= stop; ++d)
 						{
 							auto it = dayPlannings.find(d);
@@ -499,12 +521,12 @@ namespace gubg { namespace planning {
 								if (tp == dayPlanning.taskParts.end())
 								{
 									if (dayPlanning.sweat > eps_())
-										td.attr("bgcolor", "green");
+										td.attr("bgcolor", greens[stripe_ix]);
 									else
 										td.attr("bgcolor", "pink");
 								}
 								else
-									td.attr("bgcolor", "red");
+									td.attr("bgcolor", reds[stripe_ix]);
 							}
 							td << "&nbsp;";
 						}

@@ -375,23 +375,38 @@ namespace gubg { namespace planning {
 				tree::dfs::iterate_ptr(this, priv::Printer(os));
 			}
 
-			Name fullName() const
-			{
-				std::list<std::string> parts;
+            Name baseName(int nr, unsigned int skip = 0) const
+            {
+                const auto parts = get_parts_();
+				std::ostringstream oss;
+				for (auto it = parts.rbegin(); it != parts.rend() && nr != 0; ++it, --nr)
+                {
+                    if (skip > 0)
+                    {
+                        --skip;
+                        continue;
+                    }
+					oss << *it << "/";
+                }
+				return oss.str();
+            }
+			Name fullName() const { return baseName(-1); }
+
+		private:
+			Task(Name n):name(n), sweat(0), cumulSweat(0) { }
+
+            using Parts = std::list<std::string>;
+            Parts get_parts_() const
+            {
+   				Parts parts;
 				auto n = shared_from_this();
 				while (n)
 				{
 					parts.push_back(n->name);
 					n = n->parent.lock();
 				}
-				std::ostringstream oss;
-				for (auto it = parts.rbegin(); it != parts.rend(); ++it)
-					oss << *it << "/";
-				return oss.str();
-			}
-
-		private:
-			Task(Name n):name(n), sweat(0), cumulSweat(0) { }
+                return parts;
+            }
 
 			bool invariants_() const
 			{
