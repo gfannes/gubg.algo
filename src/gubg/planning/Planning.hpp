@@ -360,7 +360,7 @@ namespace gubg { namespace planning {
 			}
 			void streamText_(std::ostream &os) const
 			{
-				os << "Planning on " << today() << std::endl;
+				os << "# Planning on " << today() << std::endl << std::endl;
 				for (const auto &p: dayPlanningsPerWorker_)
 				{
 					os << p.first << std::endl;
