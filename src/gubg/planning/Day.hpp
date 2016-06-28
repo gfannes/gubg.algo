@@ -20,7 +20,7 @@ namespace gubg { namespace planning {
         {
             Strange strange(str);
             int y, m, d;
-            if (strange.popDecimal(y) && strange.popCharIf('-') && strange.popDecimal(m) && strange.popCharIf('-') && strange.popDecimal(d))
+            if (strange.popDecimal(y) && strange.pop_if('-') && strange.popDecimal(m) && strange.pop_if('-') && strange.popDecimal(d))
             {
                 y_ = y;
                 m_ = m;

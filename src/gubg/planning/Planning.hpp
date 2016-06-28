@@ -491,8 +491,8 @@ namespace gubg { namespace planning {
 					for (auto task: tasks)
 					{
                         const unsigned int nr_levels = 4;
-                        const auto basename = task->baseName(nr_levels);
-                        const auto restname = task->baseName(-1, nr_levels);
+                        const auto basename = task->base_name(nr_levels);
+                        const auto restname = task->base_name(-1, nr_levels);
 
                         //Handle striping
                         if (basename != task_basename)
