@@ -382,7 +382,7 @@ namespace gubg { namespace planning {
                 auto n = shared_from_this();
                 while (n)
                 {
-                    parts.push_back(n->name);
+                    parts.push_front(n->name);
                     n = n->parent.lock();
                 }
                 return parts;
@@ -392,7 +392,7 @@ namespace gubg { namespace planning {
             {
                 const auto parts = name_parts();
                 std::ostringstream oss;
-                for (auto it = parts.rbegin(); it != parts.rend() && nr != 0; ++it, --nr)
+                for (auto it = parts.begin(); it != parts.end() && nr != 0; ++it, --nr)
                 {
                     if (skip > 0)
                     {
