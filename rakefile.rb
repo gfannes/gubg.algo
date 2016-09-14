@@ -34,7 +34,7 @@ namespace :ut do
     ut = nil
     task :setup do
         ut = Build::Executable.new('unit_tests')
-        ut.add_define('DEBUG');
+        # ut.add_define('DEBUG');
         ut.add_include_path(shared_dir('include'))
         ut.add_sources(FileList.new('src/test/**/*.cpp'))
         ut.add_sources(FileList.new(shared('include', '**/*.hpp')))
