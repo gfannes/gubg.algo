@@ -155,7 +155,7 @@ TEST_CASE("gp::World tests", "[ut][gp]")
     std::ofstream of("output.txt", std::ios::out);
     of << "$data << EOD" << std::endl;
     unsigned int ix = 0;
-    for (double d = 0.0; d < 1.0; d += 0.1, ++ix)
+    for (double d = 0.0; d < 1.0; d += 0.01, ++ix)
     {
         of << ix << ' ' << d << ' ' << best.interpolate(d) << std::endl;
     }
