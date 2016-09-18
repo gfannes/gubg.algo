@@ -4,6 +4,7 @@
 #include <random>
 #include <algorithm>
 #include <deque>
+#include <map>
 #include <ostream>
 #include <fstream>
 
@@ -11,14 +12,33 @@ namespace  {
     const double pipi = 2.0*3.1415926;
 
     using Signal = std::deque<double>;
+    using Impulses = std::map<double, double>;
     
     class Creature
     {
         public:
-            Signal signal;
+            Impulses impulses;
 
             double interpolate(double d) const
             {
+                auto it = impulses.lower_bound(d);
+                if (it == impulses.end())
+                {
+                    if (impulses.empty())
+                        return 0.0;
+                    --it;
+                    return it->second;
+                }
+                else if (it == impulses.begin())
+                {
+                    return it->second;
+                }
+
+                auto pit = it; --pit;
+                assert(pit->first <= d);
+                assert(d <= it->first);
+                return pit->second + ((d - pit->first)/(it->first - pit->first))*(it->second - pit->second);
+#if 0
                 const auto size = signal.size();
                 if (size == 0)
                     return 0.0;
@@ -34,12 +54,13 @@ namespace  {
                 const auto low = signal[ix_c];
                 const auto heigh = signal[ix_c+1];
                 return (1.0-dd)*low + dd*heigh;
+#endif
             }
     };
     std::ostream & operator<<(std::ostream &os, const Creature &creature)
     {
-        for (auto s: creature.signal)
-            os << C(s);
+        for (auto p: creature.impulses)
+            os << C(p.first)C(p.second);
         return os;
     }
 
@@ -56,7 +77,7 @@ namespace  {
             bool create(Creature &creature) const
             {
                 MSS_BEGIN(bool);
-                creature.signal.clear();
+                creature.impulses.clear();
                 MSS_END();
             }
 
@@ -69,10 +90,10 @@ namespace  {
 
             bool score(double &score, const Creature &creature) const
             {
-                MSS_BEGIN(bool, "test");
+                MSS_BEGIN(bool);
                 double cost = 0.0;
                 const auto size = signal_.size();
-                const auto size_c = creature.signal.size();
+                const auto size_c = creature.impulses.size();
                 L(C(size_c));
                 /* cost += double(size_c)/double(size*100); */
                 for (size_t ix = 0; ix < size; ++ix)
@@ -90,8 +111,28 @@ namespace  {
 
             bool mate(Creature &child, const Creature &a, const Creature &b) const
             {
-                MSS_BEGIN(bool);
-                child.signal.resize(0);
+                MSS_BEGIN(bool, "mate");
+
+                child.impulses.clear();
+
+                auto insert_impulses_ = [&](const Creature &c)
+                {
+                    for (const auto &p: c.impulses)
+                        if (coin_flip_(rng_))
+                            child.impulses.insert(p);
+                };
+                insert_impulses_(a);
+                insert_impulses_(b);
+
+                if (add_impulse_(rng_))
+                {
+                    child.impulses[uniform_(rng_)] = range_(rng_);
+                }
+
+                L(C(a));
+                L(C(b));
+                L(C(child));
+#if 0
                 const double d = uniform_(rng_);
                 {
                     const size_t nr_a = d*a.signal.size();
@@ -106,6 +147,7 @@ namespace  {
                     child.signal.push_back(noise_(rng_));
                 for (unsigned int nr_to_remove = std::min<unsigned int>(geometric_(rng_), child.signal.size()); nr_to_remove > 0; --nr_to_remove)
                     child.signal.pop_front();
+#endif
 
                 MSS_END();
             }
@@ -114,8 +156,11 @@ namespace  {
             Signal signal_;
             mutable std::mt19937 rng_;
             mutable std::uniform_real_distribution<> uniform_{0.0, 1.0};
+            mutable std::uniform_real_distribution<> range_{-1.0, 1.0};
             mutable std::geometric_distribution<> geometric_{0.5};
             mutable std::uniform_real_distribution<> noise_{-1.0, 1.0};
+            mutable std::bernoulli_distribution coin_flip_;
+            mutable std::bernoulli_distribution add_impulse_;
     };
 
     using World = gubg::gp::World<Creature, Operations>;
@@ -143,8 +188,9 @@ TEST_CASE("gp::World tests", "[ut][gp]")
     const Operations oper(signal);
     World world(oper);
     world.resize(100);
-    for (int i = 0; i < 10000; ++i)
+    for (int i = 0; i < 1000; ++i)
     {
+        L(C(i));
         REQUIRE(world.process());
     }
 

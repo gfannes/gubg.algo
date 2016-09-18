@@ -23,6 +23,7 @@ namespace gubg { namespace gp {
 
                 void resize(size_t size)
                 {
+                    S("resize");L(C(size));
                     population_.resize(size);
                     infos_.resize(size);
                     generation_ = -1;
@@ -38,19 +39,19 @@ namespace gubg { namespace gp {
 
                     L("Processing " << C(generation_));
 
-                    //Create initial population, if needed
                     if (generation_ == 0)
                     {
+                        L("Create initial population, if needed");
                         for (auto &creature: population_)
                         {
                             MSS(operations_.create(creature));
                         }
                     }
 
-                    //Process the population
+                    L("Process the population");
                     MSS(operations_.process(population_));
 
-                    //Compute the scores for all
+                    L("Compute the scores for all");
                     {
                         auto compute_and_set_score = [&](Creature &creature, Info &info)
                         {
@@ -60,7 +61,7 @@ namespace gubg { namespace gp {
                         MSS(gubg::zip(RANGE(population_), infos_.begin(), compute_and_set_score));
                     }
 
-                    //Kill the weak
+                    L("Kill the weak");
                     {
                         std::sort(RANGE(infos_), [](const Info &a, const Info &b) { return a.score < b.score;});
                         for (auto &info: infos_)
@@ -69,33 +70,47 @@ namespace gubg { namespace gp {
                         auto nr_to_kill = operations_.kill_fraction()*population_.size();
                         //Make sure we do not kill too much: else, mating becomes difficult
                         MSS(nr_to_kill < population_.size()/2);
-                        for (; nr_to_kill > 0; --nr_to_kill)
+                        for (; nr_to_kill > 0; )
                         {
+                            /* L(C(nr_to_kill)); */
                             const auto kill_ix = geometric_(rng_);
-                            auto &info = infos_[kill_ix];
+                            if (kill_ix >= infos_.size())
+                            {
+                                L("kill_ix too large");
+                                continue;
+                            }
 
-                            for (int ix = kill_ix; ix >= 0; --ix)
-                            {
-                                 if (info.alive)
-                                 {
-                                     L("Killing " << C(kill_ix));
-                                     info.alive = false;
-                                     break;
-                                 }
-                            }
-                            for (int ix = kill_ix; ix < population_.size(); ++ix)
-                            {
-                                 if (info.alive)
-                                 {
-                                     L("Killing " << C(kill_ix));
-                                     info.alive = false;
-                                     break;
-                                 }
-                            }
+                            bool killed = false;
+                            if (!killed)
+                                for (int ix = kill_ix; ix >= 0; --ix)
+                                {
+                                    auto &info = infos_[ix];
+                                    if (info.alive)
+                                    {
+                                        L("Killing " << C(ix));
+                                        killed = true;
+                                        info.alive = false;
+                                        break;
+                                    }
+                                }
+                            if (!killed)
+                                for (int ix = kill_ix; ix < population_.size(); ++ix)
+                                {
+                                    auto &info = infos_[ix];
+                                    if (info.alive)
+                                    {
+                                        L("Killing " << C(ix));
+                                        killed = true;
+                                        info.alive = false;
+                                        break;
+                                    }
+                                }
+                            if (killed)
+                                --nr_to_kill;
                         }
                     }
-                    
-                    //Mate
+
+                    L("Mate");
                     for (auto &info: infos_)
                     {
                         if (info.alive)
@@ -121,6 +136,7 @@ namespace gubg { namespace gp {
                         }
                         assert(!!info.creature);
                         MSS(operations_.mate(*info.creature, *parent_a, *parent_b));
+                        info.alive = true;
                     }
 
                     //Sort again
