@@ -39,7 +39,7 @@ TEST_CASE("gubg::pid::Controller tests", "[ut][gubg][pid]")
 {
     Rocket rocket;
     const T dt = 0.001;
-    for (; rocket.time() < 10; rocket.process(dt))
+    for (; rocket.time() < 30; rocket.process(dt))
     {
         cout << "[rocket](time:" << rocket.time() << ")(x:" << rocket.x << ")(v:" << rocket.v << "){}" << endl;
     }
