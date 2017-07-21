@@ -7,21 +7,28 @@ using namespace std;
 namespace  { 
     using T = double;
 
-    class Rocket: public pid::Controller<Rocket, T>
+    class Rocket
     {
     public:
-        void pid_coefs(T &p, T &i, T &d, T time) const
+        Rocket()
         {
-            p = 10.0;
-            i = 5.0;
-            d = 10.0;
+            pid_.p(10.0);
+            pid_.i(5.0);
+            pid_.d(10.0);
         }
 
-        T pid_simulate(T time, T dt, T u)
+        T time() const {return time_;}
+
+        void process(T dt)
         {
-            v += (u-g_)/mass_*dt;
+            time_ += dt;
+
+            v += (pid_.u()-g_)/mass_*dt;
             x += v*dt;
-            return (target_x_ - x);
+
+            const T error = (target_x_ - x);
+
+            pid_.update(dt, error);
         }
 
     public:
@@ -32,6 +39,10 @@ namespace  {
         const T g_ = 9.81;
         T mass_ = 1.0;
         T target_x_ = 1.0;
+
+        T time_{};
+
+        pid::Controller<T> pid_;
     };
 } 
 
