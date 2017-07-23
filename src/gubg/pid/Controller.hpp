@@ -17,6 +17,7 @@ namespace gubg { namespace pid {
 
         T u() const {return u_;}
 
+        //error: target - actual
         void update(T dt, T error)
         {
             //Update the proportional, integral and differential, to be used in the next iteration
