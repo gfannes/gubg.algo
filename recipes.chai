@@ -1,0 +1,8 @@
+recipe("gubg.algo", "func", fun(r){
+    r.add_header("src", "gubg/**.hpp")
+    r.add_source("src", "gubg/**.cpp")
+})
+
+recipe("gubg.algo", "ut", fun(r){
+    r.add_source("test", "**.cpp")
+})
