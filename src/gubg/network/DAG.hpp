@@ -75,8 +75,13 @@ namespace gubg { namespace network {
                         new_stage.insert(dst);
                     }
 
+#ifdef _MSC_VER
+                pruned.insert(stage.begin(), stage.end());
+                stage.clear();
+#else
                 pruned.merge(stage);
                 MSS(stage.empty());
+#endif
 
                 stage.swap(new_stage);
             }
