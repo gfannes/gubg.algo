@@ -37,10 +37,24 @@ namespace gubg { namespace network {
         }
 
         template <typename Ftor>
-        void each_vertex(Ftor ftor)
+        bool each_vertex(Ftor ftor)
         {
+            MSS_BEGIN(bool);
             for (auto v: vertices_)
-                ftor(v);
+            {
+                MSS(ftor(v));
+            }
+            MSS_END();
+        }
+        template <typename Ftor>
+        bool each_vertex(Ftor ftor) const
+        {
+            MSS_BEGIN(bool);
+            for (auto v: vertices_)
+            {
+                MSS(ftor(v));
+            }
+            MSS_END();
         }
 
         bool remove_unreachables(T *v)
