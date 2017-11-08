@@ -5,6 +5,6 @@ open_book("gubg.algo", fun(b){
     })
 
     b.add_recipe("ut", fun(r){
-        r.add_source("test", "**.cpp")
+        r.add_source("src/test", "**.cpp")
     })
 })
