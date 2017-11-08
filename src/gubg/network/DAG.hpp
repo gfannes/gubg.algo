@@ -1,7 +1,6 @@
 #ifndef HEADER_gubg_network_DAG_hpp_ALREADY_INCLUDED
 #define HEADER_gubg_network_DAG_hpp_ALREADY_INCLUDED
 
-#include "gubg/network/Edge.hpp"
 #include "gubg/mss.hpp"
 #include <set>
 #include <vector>
@@ -15,8 +14,6 @@ namespace gubg { namespace network {
     public:
         using Self = DAG<T>;
         using Vertices = std::set<T*>;
-        using Edge = network::Edge<T>;
-        using Edges = std::vector<Edge>;
 
         void clear(){*this = Self{};}
 
