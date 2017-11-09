@@ -5,6 +5,7 @@
 #include <set>
 #include <map>
 #include <list>
+#include <ostream>
 #include <cassert>
 
 namespace gubg { namespace network { 
@@ -36,17 +37,25 @@ namespace gubg { namespace network {
             return sequence_.size();
         }
 
-        bool add_vertex(Vertex *v)
+        bool add_vertex(Vertex *v, bool fail_when_present = true)
         {
             MSS_BEGIN(bool, "");
-            L(C(*v));
+            L(C(v));
             assert(invariants_());
             MSS(!!v);
             int order = -(int)size();
             auto it = info_.insert(std::make_pair(v, Info{order}));
-            MSS(it.second);
-            sequence_.push_front(v);
-            it.first->second.it = sequence_.begin();
+            if (!it.second)
+            {
+                //Node is already present
+                MSS(!fail_when_present);
+            }
+            else
+            {
+                //Node should be added
+                sequence_.push_front(v);
+                it.first->second.it = sequence_.begin();
+            }
             assert(invariants_());
             MSS_END();
         }
@@ -54,13 +63,24 @@ namespace gubg { namespace network {
         bool add_edge(Vertex *src, Vertex *dst)
         {
             MSS_BEGIN(bool, "");
-            L(C(*src)C(*dst));
+            L(C(src)C(dst));
             assert(invariants_());
 
             MSS(src != dst);
 
-            auto src_it = info_.find(src); MSS(src_it != info_.end());
-            auto dst_it = info_.find(dst); MSS(dst_it != info_.end());
+            auto dst_it = info_.find(dst);
+            if (dst_it == info_.end())
+            {
+                MSS(add_vertex(dst));
+                dst_it = info_.find(dst);
+            }
+
+            auto src_it = info_.find(src);
+            if (src_it == info_.end())
+            {
+                MSS(add_vertex(src));
+                src_it = info_.find(src);
+            }
 
             if (src_it->second.order < dst_it->second.order)
             {
@@ -75,6 +95,7 @@ namespace gubg { namespace network {
                     const auto src_order = src_it->second.order;
                     for (auto v: dst_it->second.dsts)
                     {
+                        L("Checking dependency on " << C(v));
                         MSS(src_order < info_[v].order);
                     }
                 }
@@ -93,7 +114,7 @@ namespace gubg { namespace network {
                     //This is expensive since we have to look-up each info in the map
                     for (auto it = start_it; it != new_dst_it; ++it)
                         --info_[*it].order;
-                    //Added the edge from src to dst
+                    //Add the edge from src to dst
                     MSS(src_it->second.dsts.insert(dst).second);
                 }
             }
@@ -134,6 +155,19 @@ namespace gubg { namespace network {
                         MSS(ftor(*it));
                     }
                     break;
+            }
+            MSS_END();
+        }
+
+        template <typename Ftor>
+        bool each_out(Vertex *v, Ftor ftor) const
+        {
+            MSS_BEGIN(bool);
+            auto p = info_.find(v);
+            MSS(p != info_.end());
+            for (auto dst: p->second.dsts)
+            {
+                MSS(ftor(*dst));
             }
             MSS_END();
         }
@@ -188,6 +222,21 @@ namespace gubg { namespace network {
             }
 
             MSS_END();
+        }
+
+        template <typename Ftor>
+        void stream(std::ostream &os, Ftor ftor) const
+        {
+            unsigned int order = 0;
+            for (auto v: sequence_)
+            {
+                os << order << "\t(" << v << ")\t" << ftor(*v) << std::endl;
+                auto p = info_.find(v);
+                if (p != info_.end())
+                    for (auto d: p->second.dsts)
+                        os << "\t => " << ftor(*d) << std::endl;
+                ++order;
+            }
         }
 
     private:
