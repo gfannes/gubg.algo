@@ -28,6 +28,7 @@ namespace gubg { namespace network {
             Info(int order): order(order){}
         };
         using InfoPerVertex = std::map<Vertex*, Info>;
+        using Vertices = std::set<Vertex*>;
 
         void clear(){*this = Self{};}
 
@@ -160,6 +161,18 @@ namespace gubg { namespace network {
         }
 
         template <typename Ftor>
+        bool depth_first(Ftor ftor) const
+        {
+            MSS_BEGIN(bool);
+            Vertices handled;
+            for (auto v: sequence_)
+            {
+                MSS(depth_first_(ftor, nullptr, v, handled));
+            }
+            MSS_END();
+        }
+
+        template <typename Ftor>
         bool each_out(Vertex *v, Ftor ftor) const
         {
             MSS_BEGIN(bool);
@@ -177,7 +190,6 @@ namespace gubg { namespace network {
             MSS_BEGIN(bool, "");
             MSS(info_.count(v) > 0);
 
-            using Vertices = std::set<Vertex*>;
             Vertices pruned;
             Vertices stage = {v}, new_stage;
 
@@ -260,6 +272,24 @@ namespace gubg { namespace network {
                 MSS(p->second.order == order);
                 MSS(p->second.it == it);
             }
+            MSS_END();
+        }
+
+        template <typename Ftor>
+        bool depth_first_(Ftor ftor, Vertex *from, Vertex *to, Vertices &handled) const
+        {
+            MSS_BEGIN(bool);
+            if (handled.count(to) == 1)
+                MSS_RETURN_OK();
+            auto p = info_.find(to);
+            if (p != info_.end())
+                for (auto dst: p->second.dsts)
+                {
+                    MSS(depth_first_(ftor, to, dst, handled));
+                }
+            if (!!from)
+                MSS(ftor(from, to));
+            handled.insert(to);
             MSS_END();
         }
 
