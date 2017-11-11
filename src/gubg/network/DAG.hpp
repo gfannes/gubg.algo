@@ -27,8 +27,8 @@ namespace gubg { namespace network {
             Info(){}
             Info(int order): order(order){}
         };
-        using InfoPerVertex = std::map<Vertex*, Info>;
-        using Vertices = std::set<Vertex*>;
+        using InfoPerVertex = std::map<const Vertex*, Info>;
+        using Vertices = std::set<const Vertex*>;
 
         void clear(){*this = Self{};}
 
@@ -130,12 +130,12 @@ namespace gubg { namespace network {
             switch (dir)
             {
                 case Direction::Forward:
-                    for (auto v: sequence_) { MSS(ftor(v)); }
+                    for (auto v: sequence_) { MSS(ftor(*v)); }
                     break;
                 case Direction::Backward:
                     for (auto it = sequence_.rbegin(); it != sequence_.rend(); ++it)
                     {
-                        MSS(ftor(*it));
+                        MSS(ftor(**it));
                     }
                     break;
             }
@@ -148,12 +148,12 @@ namespace gubg { namespace network {
             switch (dir)
             {
                 case Direction::Forward:
-                    for (auto v: sequence_) { MSS(ftor(v)); }
+                    for (auto v: sequence_) { MSS(ftor(*v)); }
                     break;
                 case Direction::Backward:
                     for (auto it = sequence_.rbegin(); it != sequence_.rend(); ++it)
                     {
-                        MSS(ftor(*it));
+                        MSS(ftor(**it));
                     }
                     break;
             }
@@ -161,19 +161,7 @@ namespace gubg { namespace network {
         }
 
         template <typename Ftor>
-        bool depth_first(Ftor ftor) const
-        {
-            MSS_BEGIN(bool);
-            Vertices handled;
-            for (auto v: sequence_)
-            {
-                MSS(depth_first_(ftor, nullptr, v, handled));
-            }
-            MSS_END();
-        }
-
-        template <typename Ftor>
-        bool each_out(Vertex *v, Ftor ftor) const
+        bool each_out(const Vertex *v, Ftor ftor) const
         {
             MSS_BEGIN(bool);
             auto p = info_.find(v);
@@ -183,6 +171,18 @@ namespace gubg { namespace network {
                 MSS(ftor(*dst));
             }
             MSS_END();
+        }
+
+        template <Direction dir, typename Ftor>
+        bool each_edge(Ftor ftor) const
+        {
+            auto notify_edges = [&](auto &src){
+                auto notify_edge = [&](auto &dst){
+                    return ftor(src, dst);
+                };
+                return each_out(&src, notify_edge);
+            };
+            return each_vertex<dir>(notify_edges);
         }
 
         bool remove_unreachables(Vertex *v)
@@ -272,24 +272,6 @@ namespace gubg { namespace network {
                 MSS(p->second.order == order);
                 MSS(p->second.it == it);
             }
-            MSS_END();
-        }
-
-        template <typename Ftor>
-        bool depth_first_(Ftor ftor, Vertex *from, Vertex *to, Vertices &handled) const
-        {
-            MSS_BEGIN(bool);
-            if (handled.count(to) == 1)
-                MSS_RETURN_OK();
-            auto p = info_.find(to);
-            if (p != info_.end())
-                for (auto dst: p->second.dsts)
-                {
-                    MSS(depth_first_(ftor, to, dst, handled));
-                }
-            if (!!from)
-                MSS(ftor(from, to));
-            handled.insert(to);
             MSS_END();
         }
 
