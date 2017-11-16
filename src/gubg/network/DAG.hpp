@@ -200,9 +200,10 @@ namespace gubg { namespace network {
                 for (auto src: stage)
                     for (auto dst: info_[src].dsts)
                     {
-                        MSS(pruned.count(dst) == 0);
-                        MSS(stage.count(dst) == 0);
-                        new_stage.insert(dst);
+                        MSS(pruned.count(dst) == 0, L("Detected upstream edge: " << *src << " -> " << *dst << std::endl));
+                        if (stage.count(dst) == 0)
+                            //handle dst in the next iteration
+                            new_stage.insert(dst);
                     }
 
 #ifdef _MSC_VER
@@ -254,7 +255,7 @@ namespace gubg { namespace network {
     private:
         bool invariants_() const
         {
-            MSS_BEGIN(bool, "");
+            MSS_BEGIN(bool);
             MSS(sequence_.size() == info_.size());
             for (const auto &p: info_)
             {
