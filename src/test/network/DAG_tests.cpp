@@ -41,9 +41,9 @@ TEST_CASE("gubg::network::DAG tests", "[ut][dag]")
 
     {
         char ch = 'a';
-        auto check = [&](Vertex *v){
+        auto check = [&](Vertex &v){
             MSS_BEGIN(bool);
-            MSS((*v)[0] == ch);
+            MSS((v)[0] == ch);
             ++ch;
             MSS_END();
         };
@@ -51,9 +51,9 @@ TEST_CASE("gubg::network::DAG tests", "[ut][dag]")
     }
     {
         char ch = 'c';
-        auto check = [&](Vertex *v){
+        auto check = [&](Vertex &v){
             MSS_BEGIN(bool);
-            MSS((*v)[0] == ch);
+            MSS((v)[0] == ch);
             --ch;
             MSS_END();
         };
@@ -64,9 +64,9 @@ TEST_CASE("gubg::network::DAG tests", "[ut][dag]")
     REQUIRE(dag.size() == 2);
     {
         char ch = 'b';
-        auto check = [&](Vertex *v){
+        auto check = [&](Vertex &v){
             MSS_BEGIN(bool);
-            MSS((*v)[0] == ch);
+            MSS((v)[0] == ch);
             ++ch;
             MSS_END();
         };

@@ -1,10 +1,14 @@
-open_book("gubg.algo", fun(b){
-    b.add_recipe("func", fun(r){
-        r.add_header("src", "gubg/**.hpp")
-        r.add_source("src", "gubg/**.cpp")
+root.book("gubg/algo", fun(b){
+    b.recipe("func", fun(r){
+        r.add("src", "gubg/**.hpp")
+        r.add("src", "gubg/**.cpp")
     })
 
-    b.add_recipe("ut", fun(r){
-        r.add_source("src/test", "**.cpp")
+    b.recipe("ut", fun(r){
+        r.add("src/test", "**.cpp")
+        r.depends_on("func")
+        r.depends_on("std/func")
+        r.depends_on("io/func")
+        r.depends_on("/catch/func")
     })
 })
