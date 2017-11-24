@@ -90,34 +90,7 @@ namespace gubg { namespace network {
             }
             else
             {
-                L("Dst must be moved after src");
-                //Check if all dsts are beyond the src order we have to mode dst to
-                {
-                    const auto src_order = src_it->second.order;
-                    for (auto v: dst_it->second.dsts)
-                    {
-                        L("Checking dependency on " << C(v));
-                        MSS(src_order < info_[v].order);
-                    }
-                }
-                
-                {
-                    //Remove dst and record the iterator after it: we have to update the order starting from there lateron
-                    auto start_it = sequence_.erase(dst_it->second.it);
-                    //Get the iterator after the location where dst should be inserted
-                    auto it = src_it->second.it; ++it;
-                    //Insert dst
-                    auto new_dst_it = sequence_.insert(it, dst);
-                    //Update the dst info
-                    dst_it->second.it = new_dst_it;
-                    dst_it->second.order = src_it->second.order;
-                    //Update the order for the vertices affected by this move in the sequence
-                    //This is expensive since we have to look-up each info in the map
-                    for (auto it = start_it; it != new_dst_it; ++it)
-                        --info_[*it].order;
-                    //Add the edge from src to dst
-                    MSS(src_it->second.dsts.insert(dst).second);
-                }
+                MSS(move_dst_after_src_(src, dst));
             }
             assert(invariants_());
             MSS_END();
@@ -253,6 +226,52 @@ namespace gubg { namespace network {
         }
 
     private:
+        bool move_dst_after_src_(Vertex *src, Vertex *dst)
+        {
+            MSS_BEGIN(bool, "");
+            auto src_it = info_.find(src);
+            assert(src_it != info_.end());
+            auto dst_it = info_.find(dst);
+            assert(dst_it != info_.end());
+            L("Dst must be moved after src");
+            //Move all dsts beyond src recursively
+            bool did_move;
+            do
+            {
+                did_move = false;
+                const auto src_order = src_it->second.order;
+                for (auto v: dst_it->second.dsts)
+                {
+                    MSS(v != src);
+                    L("Checking dependency on " << C(v));
+                    if (src_order > info_[v].order)
+                    {
+                        L("Incorrect order, I first need to move dependency " << v);
+                        MSS(move_dst_after_src_(src, v));
+                        did_move = true;;
+                    }
+                }
+            } while (did_move);
+
+            {
+                //Remove dst and record the iterator after it: we have to update the order starting from there lateron
+                auto start_it = sequence_.erase(dst_it->second.it);
+                //Get the iterator after the location where dst should be inserted
+                auto it = src_it->second.it; ++it;
+                //Insert dst
+                auto new_dst_it = sequence_.insert(it, dst);
+                //Update the dst info
+                dst_it->second.it = new_dst_it;
+                dst_it->second.order = src_it->second.order;
+                //Update the order for the vertices affected by this move in the sequence
+                //This is expensive since we have to look-up each info in the map
+                for (auto it = start_it; it != new_dst_it; ++it)
+                    --info_[*it].order;
+                //Add the edge from src to dst
+                MSS(src_it->second.dsts.insert(dst).second);
+            }
+            MSS_END();
+        }
         bool invariants_() const
         {
             MSS_BEGIN(bool);
