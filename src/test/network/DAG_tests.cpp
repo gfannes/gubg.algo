@@ -12,6 +12,10 @@ TEST_CASE("gubg::network::DAG tests", "[ut][dag]")
 
     DAG dag;
 
+    auto print = [&](){
+        dag.stream(std::cout, [](const auto &n){return n;});
+    };
+
     SECTION("step-by-step construction")
     {
         REQUIRE(dag.size() == 0);
@@ -34,7 +38,9 @@ TEST_CASE("gubg::network::DAG tests", "[ut][dag]")
         REQUIRE(!dag.add_edge(&a, &a));
         REQUIRE(dag.add_edge(&a, &b));
         REQUIRE(!dag.add_edge(&a, &b));
+        print();
         REQUIRE(!dag.add_edge(&b, &a));
+        print();
         REQUIRE(dag.add_edge(&a, &c));
 
         REQUIRE(!dag.add_vertex(&c));
@@ -78,9 +84,6 @@ TEST_CASE("gubg::network::DAG tests", "[ut][dag]")
 
     SECTION("proper reordering")
     {
-        auto print = [&](){
-            dag.stream(std::cout, [](const auto &n){return n;});
-        };
         REQUIRE(dag.add_vertex(&c));
         REQUIRE(dag.add_vertex(&b));
         REQUIRE(dag.add_vertex(&a));

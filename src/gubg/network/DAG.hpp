@@ -4,31 +4,32 @@
 #include "gubg/mss.hpp"
 #include <set>
 #include <map>
-#include <list>
+#include <vector>
 #include <ostream>
 #include <cassert>
 
 namespace gubg { namespace network { 
 
     enum class Direction { Forward, Backward, };
+    enum class State {Unvisited, Visiting, Visited};
 
     template <typename Vertex>
     class DAG
     {
     public:
         using Self = DAG<Vertex>;
-        using Sequence = std::list<Vertex*>;
         using Set = std::set<Vertex*>;
+        using Vertices = std::set<const Vertex*>;
         struct Info
         {
-            int order = 0;
-            typename Sequence::iterator it;
+            size_t order = 0;
             Set dsts;
+            State state;
             Info(){}
-            Info(int order): order(order){}
+            Info(size_t order): order(order){}
         };
-        using InfoPerVertex = std::map<const Vertex*, Info>;
-        using Vertices = std::set<const Vertex*>;
+        using InfoPerVertex = std::map<Vertex*, Info>;
+        using Sequence = std::vector<typename InfoPerVertex::iterator>;
 
         void clear(){*this = Self{};}
 
@@ -44,7 +45,7 @@ namespace gubg { namespace network {
             L(C(v));
             assert(invariants_());
             MSS(!!v);
-            int order = -(int)size();
+            auto order = size();
             auto it = info_.insert(std::make_pair(v, Info{order}));
             if (!it.second)
             {
@@ -54,8 +55,7 @@ namespace gubg { namespace network {
             else
             {
                 //Node should be added
-                sequence_.push_front(v);
-                it.first->second.it = sequence_.begin();
+                sequence_.push_back(it.first);
             }
             assert(invariants_());
             MSS_END();
@@ -64,7 +64,7 @@ namespace gubg { namespace network {
         bool add_edge(Vertex *src, Vertex *dst)
         {
             MSS_BEGIN(bool, "");
-            L(C(src)C(dst));
+            L(C(*src)C(*dst));
             assert(invariants_());
 
             MSS(src != dst);
@@ -83,15 +83,15 @@ namespace gubg { namespace network {
                 src_it = info_.find(src);
             }
 
-            if (src_it->second.order < dst_it->second.order)
-            {
-                L("Nodes are correctly ordered");
-                MSS(src_it->second.dsts.insert(dst).second);
-            }
-            else
-            {
-                MSS(move_dst_after_src_(src, dst));
-            }
+            //Insert the edge
+            auto p = src_it->second.dsts.insert(dst);
+            MSS(p.second);
+
+            if (src_it->second.order > dst_it->second.order)
+                //Node are not correcly ordered: sort all the nodes
+                //When this fails, we have a directed cycle and will remove the already added edge again
+                MSS(sort_(), src_it->second.dsts.erase(p.first));
+
             assert(invariants_());
             MSS_END();
         }
@@ -103,12 +103,12 @@ namespace gubg { namespace network {
             switch (dir)
             {
                 case Direction::Forward:
-                    for (auto v: sequence_) { MSS(ftor(*v)); }
+                    for (const auto &it: sequence_) { MSS(ftor(*it->first)); }
                     break;
                 case Direction::Backward:
                     for (auto it = sequence_.rbegin(); it != sequence_.rend(); ++it)
                     {
-                        MSS(ftor(**it));
+                        MSS(ftor(*(*it)->first));
                     }
                     break;
             }
@@ -121,12 +121,12 @@ namespace gubg { namespace network {
             switch (dir)
             {
                 case Direction::Forward:
-                    for (auto v: sequence_) { MSS(ftor(*v)); }
+                    for (const auto &it: sequence_) { MSS(ftor(*it->first)); }
                     break;
                 case Direction::Backward:
                     for (auto it = sequence_.rbegin(); it != sequence_.rend(); ++it)
                     {
-                        MSS(ftor(**it));
+                        MSS(ftor(*(*it)->first));
                     }
                     break;
             }
@@ -163,8 +163,8 @@ namespace gubg { namespace network {
             MSS_BEGIN(bool, "");
             MSS(info_.count(v) > 0);
 
-            Vertices pruned;
-            Vertices stage = {v}, new_stage;
+            Set pruned;
+            Set stage = {v}, new_stage;
 
             while (!stage.empty())
             {
@@ -190,22 +190,26 @@ namespace gubg { namespace network {
                 stage.swap(new_stage);
             }
 
-            int order = -(int)pruned.size();
-            for (auto p = info_.begin(); p != info_.end();)
+            db_seq_.resize(pruned.size());
+            db_seq_ix_ = db_seq_.size()-1;
+
+            for (size_t src_ix = sequence_.size(); src_ix-- > 0;)
             {
-                if (pruned.count(p->first) > 0)
+                const auto &it = sequence_[src_ix];
+                if (pruned.count(it->first) > 0)
                 {
-                    //This vertex should be kept, we only need to update the order
-                    p->second.order = ++order;
-                    ++p;
+                    //This vertex should be kept
+                    it->second.order = db_seq_ix_;
+                    db_seq_[db_seq_ix_--] = it;
                 }
                 else
                 {
                     //This vertex should be removed
-                    sequence_.erase(p->second.it);
-                    p = info_.erase(p); 
+                    info_.erase(it); 
                 }
             }
+
+            db_seq_.swap(sequence_);
 
             MSS_END();
         }
@@ -214,88 +218,81 @@ namespace gubg { namespace network {
         void stream(std::ostream &os, Ftor ftor) const
         {
             unsigned int order = 0;
-            for (auto v: sequence_)
+            for (const auto &it: sequence_)
             {
-                os << order << "\t(" << v << ")\t" << ftor(*v) << std::endl;
-                auto p = info_.find(v);
-                if (p != info_.end())
-                    for (auto d: p->second.dsts)
-                        os << "\t => " << ftor(*d) << std::endl;
+                assert(it != info_.end());
+                {
+                    auto v = it->first;
+                    os << order << "\t(" << v << ")\t" << ftor(*v) << std::endl;
+                }
+                for (auto d: it->second.dsts)
+                    os << "\t => " << ftor(*d) << std::endl;
                 ++order;
             }
         }
 
     private:
-        bool move_dst_after_src_(Vertex *src, Vertex *dst)
+        bool visit_(const typename InfoPerVertex::iterator &it)
         {
             MSS_BEGIN(bool, "");
-            auto src_it = info_.find(src);
-            assert(src_it != info_.end());
-            auto dst_it = info_.find(dst);
-            assert(dst_it != info_.end());
-            L("Dst must be moved after src");
-            //Move all dsts beyond src recursively
-            bool did_move;
-            do
+            L(*it->first);
+            MSS(it->second.state != State::Visiting);
+            if (it->second.state == State::Unvisited)
             {
-                did_move = false;
-                const auto src_order = src_it->second.order;
-                for (auto v: dst_it->second.dsts)
+                it->second.state = State::Visiting;
+                for (auto v: it->second.dsts)
                 {
-                    MSS(v != src);
-                    L("Checking dependency on " << C(v));
-                    if (src_order > info_[v].order)
-                    {
-                        L("Incorrect order, I first need to move dependency " << v);
-                        MSS(move_dst_after_src_(src, v));
-                        did_move = true;;
-                    }
+                    MSS(visit_(info_.find(v)));
                 }
-            } while (did_move);
-
-            {
-                //Remove dst and record the iterator after it: we have to update the order starting from there lateron
-                auto start_it = sequence_.erase(dst_it->second.it);
-                //Get the iterator after the location where dst should be inserted
-                auto it = src_it->second.it; ++it;
-                //Insert dst
-                auto new_dst_it = sequence_.insert(it, dst);
-                //Update the dst info
-                dst_it->second.it = new_dst_it;
-                dst_it->second.order = src_it->second.order;
-                //Update the order for the vertices affected by this move in the sequence
-                //This is expensive since we have to look-up each info in the map
-                for (auto it = start_it; it != new_dst_it; ++it)
-                    --info_[*it].order;
-                //Add the edge from src to dst
-                MSS(src_it->second.dsts.insert(dst).second);
+                {
+                    it->second.order = db_seq_ix_;
+                    it->second.state = State::Visited;
+                    db_seq_[db_seq_ix_--] = it;
+                }
             }
+            MSS_END();
+        }
+        bool sort_()
+        {
+            MSS_BEGIN(bool, "");
+
+            for (auto &p: info_)
+                p.second.state = State::Unvisited;
+
+            db_seq_.resize(sequence_.size());
+            db_seq_ix_ = db_seq_.size()-1;
+            for (size_t src_ix = sequence_.size(); src_ix-- > 0;)
+            {
+                MSS(visit_(sequence_[src_ix]));
+            }
+
+            db_seq_.swap(sequence_);
+
             MSS_END();
         }
         bool invariants_() const
         {
-            MSS_BEGIN(bool);
+            MSS_BEGIN(bool, "");
             MSS(sequence_.size() == info_.size());
-            for (const auto &p: info_)
+            for (size_t ix = 0; ix < sequence_.size(); ++ix)
             {
-                MSS(p.first == *p.second.it);
-            }
-            int order = sequence_.size();
-            order = -order;
-            for (auto it = sequence_.begin(); it != sequence_.end(); ++it)
-            {
-                L(**it);
-                ++order;
-                auto p = info_.find(*it);
-                MSS(p != info_.end());
-                L(C(p->second.order)C(order));
-                MSS(p->second.order == order);
-                MSS(p->second.it == it);
+                const auto it = sequence_[ix];
+                MSS(it != info_.end());
+                MSS(!!it->first);
+                MSS(it->second.order == ix);
+                for (auto v: it->second.dsts)
+                {
+                    auto p = info_.find(v);
+                    MSS(p != info_.end());
+                    MSS(it->second.order < p->second.order, std::cout << "Error: This is not a DAG" << std::endl);
+                }
             }
             MSS_END();
         }
 
         Sequence sequence_;
+        Sequence db_seq_;
+        size_t db_seq_ix_;
         InfoPerVertex info_;
     };
 
