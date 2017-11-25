@@ -137,7 +137,7 @@ namespace gubg { namespace network {
         bool each_out(const Vertex *v, Ftor ftor) const
         {
             MSS_BEGIN(bool);
-            auto p = info_.find(v);
+            auto p = info_.find(const_cast<Vertex*>(v));
             MSS(p != info_.end());
             for (auto dst: p->second.dsts)
             {
