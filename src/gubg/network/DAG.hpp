@@ -172,20 +172,12 @@ namespace gubg { namespace network {
 
                 for (auto src: stage)
                     for (auto dst: info_[src].dsts)
-                    {
-                        MSS(pruned.count(dst) == 0, L("Detected upstream edge: " << *src << " -> " << *dst << std::endl));
                         if (stage.count(dst) == 0)
                             //handle dst in the next iteration
                             new_stage.insert(dst);
-                    }
 
-#ifdef _MSC_VER
                 pruned.insert(stage.begin(), stage.end());
                 stage.clear();
-#else
-                pruned.merge(stage);
-                MSS(stage.empty());
-#endif
 
                 stage.swap(new_stage);
             }

@@ -9,6 +9,7 @@ TEST_CASE("gubg::network::DAG tests", "[ut][dag]")
     Vertex a = "a";
     Vertex b = "b";
     Vertex c = "c";
+    Vertex d = "d";
 
     DAG dag;
 
@@ -92,5 +93,15 @@ TEST_CASE("gubg::network::DAG tests", "[ut][dag]")
         print();
         REQUIRE(dag.add_edge(&c, &a));
         print();
+    }
+
+    SECTION("remove_unreachables")
+    {
+        REQUIRE(dag.add_edge(&a, &b));
+        REQUIRE(dag.add_edge(&a, &d));
+        REQUIRE(dag.add_edge(&b, &c));
+        REQUIRE(dag.add_edge(&c, &d));
+        REQUIRE(dag.remove_unreachables(&a));
+        REQUIRE(dag.size() == 4);
     }
 }
