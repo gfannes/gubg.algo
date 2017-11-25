@@ -41,7 +41,7 @@ namespace gubg { namespace network {
 
         bool add_vertex(Vertex *v, bool fail_when_present = true)
         {
-            MSS_BEGIN(bool, "");
+            MSS_BEGIN(bool);
             L(C(v));
             assert(invariants_());
             MSS(!!v);
@@ -63,8 +63,8 @@ namespace gubg { namespace network {
 
         bool add_edge(Vertex *src, Vertex *dst)
         {
-            MSS_BEGIN(bool, "");
-            L(C(*src)C(*dst));
+            MSS_BEGIN(bool);
+            L(C(src)C(dst));
             assert(invariants_());
 
             MSS(src != dst);
@@ -160,7 +160,7 @@ namespace gubg { namespace network {
 
         bool remove_unreachables(Vertex *v)
         {
-            MSS_BEGIN(bool, "");
+            MSS_BEGIN(bool);
             MSS(info_.count(v) > 0);
 
             Set pruned;
@@ -226,8 +226,8 @@ namespace gubg { namespace network {
     private:
         bool visit_(const typename InfoPerVertex::iterator &it)
         {
-            MSS_BEGIN(bool, "");
-            L(*it->first);
+            MSS_BEGIN(bool);
+            L(it->first);
             MSS(it->second.state != State::Visiting);
             if (it->second.state == State::Unvisited)
             {
@@ -246,7 +246,7 @@ namespace gubg { namespace network {
         }
         bool sort_()
         {
-            MSS_BEGIN(bool, "");
+            MSS_BEGIN(bool);
 
             for (auto &p: info_)
                 p.second.state = State::Unvisited;
@@ -264,7 +264,7 @@ namespace gubg { namespace network {
         }
         bool invariants_() const
         {
-            MSS_BEGIN(bool, "");
+            MSS_BEGIN(bool);
             MSS(sequence_.size() == info_.size());
             for (size_t ix = 0; ix < sequence_.size(); ++ix)
             {
