@@ -59,6 +59,7 @@ namespace gubg { namespace optimization {
                 h0.ss_p = Params::sum_squares(h0.p);
                 if (success_)
                 {
+                    //TODO: Causes division by zero sometimes
                     const Float sigma_k = sigma_/std::sqrt(h0.ss_p);
                     L(C(sigma_k));
                     h1.w = h0.w;
