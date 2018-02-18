@@ -2,13 +2,14 @@ root.book("gubg/algo", fun(b){
     b.recipe("func", fun(r){
         r.add("src", "gubg/**.hpp")
         r.add("src", "gubg/**.cpp")
+
+	r.depends_on("std/func")
+	r.depends_on("io/func")
     })
 
     b.recipe("ut", fun(r){
         r.add("src/test", "**.cpp")
         r.depends_on("func")
-        r.depends_on("std/func")
-        r.depends_on("io/func")
         r.depends_on("/catch/func")
     })
 })

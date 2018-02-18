@@ -39,6 +39,18 @@ namespace gubg { namespace network {
             return sequence_.size();
         }
 
+        bool has_vertex(Vertex * v)
+        {
+            MSS_BEGIN(bool);
+
+            assert(invariants_());
+            MSS(!!v);
+
+            MSS_Q(info_.find(v) != info_.end());
+
+            MSS_END();
+        }
+
         bool add_vertex(Vertex *v, bool fail_when_present = true)
         {
             MSS_BEGIN(bool);
