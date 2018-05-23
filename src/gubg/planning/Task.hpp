@@ -17,7 +17,7 @@ namespace gubg { namespace planning {
     typedef std::shared_ptr<Day> Day_ptr;
     struct CompareDeadlines
     {
-        bool operator()(Day_ptr lhs, Day_ptr rhs)
+        bool operator()(const Day_ptr & lhs, const Day_ptr & rhs) const
         {
             return *lhs < *rhs;
         }
