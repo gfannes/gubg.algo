@@ -5,8 +5,40 @@
 #include "gubg/iterator/Transform.hpp"
 #include <vector>
 #include <list>
+#include <functional>
 
 namespace gubg { namespace graph { namespace detail {
+
+    template <typename It>
+    struct IteratorWrapper
+    {
+        IteratorWrapper(It it = It())
+        : it(it)
+        {
+        }
+
+        operator It() const { return it; }
+
+        bool operator==(const IteratorWrapper & rhs) const
+        {
+            return it == rhs.it;
+        }
+        bool operator!=(const IteratorWrapper & rhs) const
+        {
+            return it != rhs.it;
+        }
+        bool operator<(const IteratorWrapper & rhs) const
+        {
+            return it < rhs.it;
+        }
+
+        It it;
+    };
+
+    template <typename It> IteratorWrapper<It> make_iterator_wrapper(It it)
+    {
+        return IteratorWrapper<It>(it);
+    }
 
     template <typename Container>
     typename Container::iterator remove_const(Container & c, typename Container::const_iterator it)
@@ -22,35 +54,35 @@ namespace gubg { namespace graph { namespace detail {
         public:
             using container_type = std::list<T>;
             using size_type = typename container_type::size_type;
-            using descriptor = typename container_type::const_iterator;
             using element_iterator = typename container_type::const_iterator;
+            using descriptor = IteratorWrapper<element_iterator>;
 
             struct Transform 
             {
-                descriptor operator()(descriptor d) const 
+                descriptor operator()(const element_iterator & it) const 
                 { 
-                    return d; 
-                } 
+                    return it;
+                }
             };
-            using descriptor_iterator = iterator::Transform<descriptor, Transform, false>;
+            using descriptor_iterator = iterator::Transform<element_iterator, Transform, false>;
 
             type() : size_(0) {}
 
             const T & get(descriptor d) const 
-            { 
-                return *d; 
+            {
+                return *d.it;
             }
 
             T & get(descriptor d) 
-            { 
-                return *remove_const(container_, d); 
+            {
+                return *remove_const(container_, d.it);
             }
 
             descriptor append(const T & t)
             {
                 auto d = container_.insert(container_.end(), t);
                 ++size_;
-                return d;
+                return descriptor(d);
             }
 
             size_type size() const
@@ -143,6 +175,21 @@ namespace gubg { namespace graph { namespace detail {
     };
 
 } } }
+
+namespace std {
+
+    template <typename It>
+    struct hash<gubg::graph::detail::IteratorWrapper<It>>
+    {
+        typedef gubg::graph::detail::IteratorWrapper<It> argument_type;
+
+        std::size_t operator()(const gubg::graph::detail::IteratorWrapper<It> & w) const noexcept
+        {
+            const void * ptr = reinterpret_cast<const void *>(&*w.it);
+            return std::hash<const void *>()(ptr);
+        }
+    };
+}
 
 #endif
 

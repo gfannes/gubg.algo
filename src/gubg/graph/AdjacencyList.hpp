@@ -180,22 +180,6 @@ namespace gubg { namespace graph { namespace detail {
         container_type in;
     };
 
-    template <typename Tag> struct EdgeInformation;
-    template <> struct EdgeInformation<undirected>
-    {
-        static constexpr bool has_direction = false;
-        static constexpr bool has_incoming = true;
-    };
-    template <> struct EdgeInformation<directed>
-    {
-        static constexpr bool has_direction = true;
-        static constexpr bool has_incoming = false;
-    };
-    template <> struct EdgeInformation<bidirectional>
-    {
-        static constexpr bool has_direction = true;
-        static constexpr bool has_incoming = true;
-    };
 
     template <typename Graph> struct SourceVertexTransformer
     {
@@ -227,29 +211,6 @@ namespace gubg { namespace graph { namespace detail {
         const Graph * g_;
     };
 }
-
-template <typename Graph>
-constexpr bool has_incoming_edge_information(const Graph & g)
-{
-    return detail::EdgeInformation<typename Graph::direction_tag>::has_incoming;
-}
-template <typename Graph>
-constexpr bool has_incoming_edge_information()
-{
-    return detail::EdgeInformation<typename Graph::direction_tag>::has_incoming;
-}
-template <typename Graph>
-constexpr bool has_direction(const Graph & g)
-{
-    return detail::EdgeInformation<typename Graph::direction_tag>::has_direction;
-}
-
-template <typename Graph>
-constexpr bool has_direction()
-{
-    return detail::EdgeInformation<typename Graph::direction_tag>::has_direction;
-}
-
 
 template <
     typename VertexListTag = use_list, 
@@ -283,6 +244,10 @@ public:
     using in_edge_iterator = out_edge_list;
     using inv_adjacent_iterator = gubg::iterator::Transform<in_edge_iterator, detail::SourceVertexTransformer<Graph>>;
     using direction_tag = DirectionTag;
+    using vertex_label_type = VertexLabel;
+    using edge_label_type = EdgeLabel;
+
+    using info = detail::EdgeInformation<direction_tag>;
 
     public:
     AdjacencyList() {}
@@ -312,7 +277,7 @@ public:
         return vertices_.get(v).out_degree();
     }
 
-    degree_type in_degree(vertex_descriptor v, std::enable_if<has_incoming_edge_information<Graph>()> * /*dummy*/ = nullptr) const
+    degree_type in_degree(vertex_descriptor v, std::enable_if<info::has_incoming> * /*dummy*/ = nullptr) const
     {
         return vertices_.get(v).in_degree();
     }
@@ -330,7 +295,7 @@ public:
     {
         return vertices_.get(v).out_edges();
     }
-    Range<out_edge_iterator> in_edges(vertex_descriptor v, std::enable_if_t<has_incoming_edge_information<Graph>()> * /*dummy*/ = nullptr) const
+    Range<out_edge_iterator> in_edges(vertex_descriptor v, std::enable_if_t<info::has_incoming> * /*dummy*/ = nullptr) const
     {
         return vertices_.get(v).in_edges();
     }
@@ -340,7 +305,7 @@ public:
         return gubg::iterator::transform(out_edges(v), T(this));
     }
 
-    Range<inv_adjacent_iterator> inv_adjacent_vertices(vertex_descriptor v, std::enable_if<has_incoming_edge_information<Graph>()> * /*dummy*/ = nullptr) const
+    Range<inv_adjacent_iterator> inv_adjacent_vertices(vertex_descriptor v, std::enable_if<info::has_incoming> * /*dummy*/ = nullptr) const
     {
         using T = detail::SourceVertexTransformer<Graph>;
         return gubg::iterator::transform(in_edges(v), T(this));
@@ -388,22 +353,22 @@ public:
 
     const VertexLabel & vertex_label(vertex_descriptor d, std::enable_if_t<!std::is_same<VertexLabel, no_label>::value> * /*dummy*/ = nullptr) const
     {
-        return vertices_.get(d).label;
+        return vertices_.get(d).label_;
     }
 
     VertexLabel & vertex_label(vertex_descriptor d, std::enable_if_t<!std::is_same<VertexLabel, no_label>::value> * /*dummy*/ = nullptr) 
     {
-        return vertices_.get(d).label;
+        return vertices_.get(d).label_;
     }
 
     const EdgeLabel & edge_label(edge_descriptor d, std::enable_if_t<!std::is_same<EdgeLabel, no_label>::value> * /*dummy*/ = nullptr) const
     {
-        return edges_.get(d).label;
+        return edges_.get(d).label_;
     }
 
     EdgeLabel & edge_label(edge_descriptor d, std::enable_if_t<!std::is_same<EdgeLabel, no_label>::value> * /*dummy*/ = nullptr)
     {
-        return edges_.get(d).label;
+        return edges_.get(d).label_;
     }
 
     private:
