@@ -286,6 +286,16 @@ public:
 
     public:
     AdjacencyList() {}
+    AdjacencyList(const AdjacencyList &) = delete;
+    AdjacencyList(AdjacencyList &&) = default;
+    AdjacencyList & operator=(const AdjacencyList &) = delete;
+    AdjacencyList & operator=(AdjacencyList &&) = default;
+
+    void clear()
+    {
+        vertices_.clear();
+        edges_.clear();
+    }
     
     vertices_size_type num_vertices() const
     {
