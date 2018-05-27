@@ -21,56 +21,57 @@ namespace  {
     {
     }
 
-    template <typename Graph, typename VD, typename It> void test_in_edges(const Graph & g, VD v, const gubg::Range<It> & in_edges, gubg::graph::undirected)
+    template <typename Graph, typename VD, typename It> void test_in_edges(const Graph & g, VD v, const gubg::Range<It> & in_range, gubg::graph::undirected)
     {
-        REQUIRE(is_permutation(g.in_edges(v), in_edges));
-        typename Graph::degree_type d = std::distance(RANGE(in_edges));
-        REQUIRE(g.in_degree(v) == d);
+        REQUIRE(is_permutation(in_edges(v,g), in_range));
+        typename gubg::graph::Traits<Graph>::degree_type d = std::distance(RANGE(in_range));
+        REQUIRE(in_degree(v, g) == d);
 
     }
 
-    template <typename Graph, typename VD, typename It> void test_in_edges(const Graph & g, VD v, const gubg::Range<It> & in_edges, gubg::graph::bidirectional)
+    template <typename Graph, typename VD, typename It> void test_in_edges(const Graph & g, VD v, const gubg::Range<It> & in_range, gubg::graph::bidirectional)
     {
-        REQUIRE(is_permutation(g.in_edges(v), in_edges));
-        typename Graph::degree_type d = std::distance(RANGE(in_edges));
-        REQUIRE(g.in_degree(v) == d);
+        REQUIRE(is_permutation(in_edges(v,g), in_range));
+        typename Graph::degree_type d = std::distance(RANGE(in_range));
+        REQUIRE(in_degree(v, g) == d);
     }
 
 
     template <typename Graph>
     void test_structure()
     {
-        using VD = typename Graph::vertex_descriptor;
-        using ED = typename Graph::edge_descriptor;
+        using Traits = gubg::graph::Traits<Graph>;
+        using VD = typename Traits::vertex_descriptor;
+        using ED = typename Traits::edge_descriptor;
 
         Graph g;
-        REQUIRE(g.num_vertices() == 0);
-        REQUIRE(g.num_edges() == 0);
-        REQUIRE(g.vertices().empty());
-        REQUIRE(g.edges().empty());
+        REQUIRE(num_vertices(g) == 0);
+        REQUIRE(num_edges(g) == 0);
+        REQUIRE(vertices(g).empty());
+        REQUIRE(edges(g).empty());
 
-        VD u = g.add_vertex();
-        REQUIRE(g.num_vertices() == 1);
-        VD v = g.add_vertex();
-        REQUIRE(g.num_vertices() == 2);
+        VD u = add_vertex(g);
+        REQUIRE(num_vertices(g) == 1);
+        VD v = add_vertex(g);
+        REQUIRE(num_vertices(g) == 2);
 
         {
             std::list<VD> lst {u, v};
-            REQUIRE(is_permutation(g.vertices(), gubg::make_range(lst)));
+            REQUIRE(is_permutation(vertices(g), gubg::make_range(lst)));
         }
 
-        ED e = g.add_edge(u, v);
-        REQUIRE(g.num_edges() == 1);
-        REQUIRE(g.source(e) == u);
-        REQUIRE(g.target(e) == v);
-        REQUIRE(g.edges().front() == e);
+        ED e = add_edge(u, v, g);
+        REQUIRE(num_edges(g) == 1);
+        REQUIRE(source(e, g) == u);
+        REQUIRE(target(e, g) == v);
+        REQUIRE(edges(g).front() == e);
 
-        REQUIRE(g.out_degree(u) == 1);
-        REQUIRE(g.out_edges(u).front() == e);
+        REQUIRE(out_degree(u, g) == 1);
+        REQUIRE(out_edges(u, g).front() == e);
 
         {
             std::list<ED> lst { e };
-            test_in_edges(g, v, gubg::make_range(lst), typename Graph::direction_tag());
+            test_in_edges(g, v, gubg::make_range(lst), typename Traits::direction_tag());
         }
 
         {
@@ -120,15 +121,15 @@ TEST_CASE("adjacency graph label", "[ut][graph]")
 
     gubg::graph::AdjacencyList<list_tag, list_tag, list_tag, std::string, EdgeType> g;
 
-    auto u = g.add_vertex();
-    auto v = g.add_vertex( "test" );
+    auto u = add_vertex(g);
+    auto v = add_vertex("test", g);
 
-    REQUIRE(g.vertex_label(u) == "");
-    REQUIRE(g.vertex_label(v) == "test");
+    REQUIRE(vertex_label(u, g) == "");
+    REQUIRE(vertex_label(v, g) == "test");
 
-    auto e = g.add_edge(u, v, EdgeType(2));
-    REQUIRE(g.edge_label(e).v == 2);
-    g.edge_label(e).v = 3;
-    REQUIRE(g.edge_label(e).v == 3);
+    auto e = add_edge(u, v, EdgeType(2), g);
+    REQUIRE(edge_label(e, g).v == 2);
+    edge_label(e, g).v = 3;
+    REQUIRE(edge_label(e, g).v == 3);
 
 }

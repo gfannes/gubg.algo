@@ -12,19 +12,19 @@ namespace {
         typename gubg::graph::Traits<Graph>::vertices_size_type vd;
 
         // every vertex occurs exactly once
-        for(auto v : g.vertices())
+        for(auto v : vertices(g))
             MSS(std::count(RANGE(order), v) == 1);
 
-        MSS(order.size() == g.num_vertices());
+        MSS(order.size() == num_vertices(g));
 
         for(auto it = order.begin(); it != order.end(); ++it)
         {
             auto u = *it;
-            for(auto v : g.adjacent_vertices(u))
+            for(auto v : adjacent_vertices(u, g))
                 MSS(std::find(RANGE(order), v) > it);
         }
 
-        for(auto v : g.vertices())
+        for(auto v : vertices(g))
             MSS(std::count(RANGE(order), v) == 1);
         
         MSS_END();
@@ -36,8 +36,8 @@ namespace {
         auto prev = g.add_vertex();
         for(unsigned int i = 0; i < 9; ++i)
         {
-            auto nxt = g.add_vertex();
-            g.add_edge(prev, nxt);
+            auto nxt = add_vertex(g);
+            add_edge(prev, nxt, g);
             prev = nxt;
         }
 
@@ -48,7 +48,7 @@ namespace {
     void construct_2(G & g, bool & is_a_dag)
     {
         construct_1(g, is_a_dag);
-        g.add_edge(g.vertices().back(), g.vertices().front());
+        add_edge(g.vertices().back(), g.vertices().front(), g);
         is_a_dag = false;
     }
 

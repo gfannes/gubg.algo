@@ -87,12 +87,12 @@ namespace gubg { namespace graph { namespace detail {
         {
             out.append(edge);
         }
-        
+
         Range<typename container_type::element_iterator> out_edges() const
         {
             return out.element_range();
         }
-        
+
         Range<typename container_type::element_iterator> in_edges() const
         {
             return out_edges();
@@ -164,7 +164,7 @@ namespace gubg { namespace graph { namespace detail {
         {
             in.append(edge);
         }
-        
+
         Range<typename container_type::element_iterator> out_edges() const
         {
             return out.element_range();
@@ -213,13 +213,13 @@ namespace gubg { namespace graph { namespace detail {
 }
 
 template <
-    typename VertexListTag = use_list, 
-    typename OutEdgeListTag = use_list, 
-    typename EdgeListTag = use_list, 
-    typename VertexLabel = no_label, 
-    typename EdgeLabel = no_label, 
-    typename DirectionTag = undirected
-    > class AdjacencyList
+typename VertexListTag = use_list, 
+         typename OutEdgeListTag = use_list, 
+         typename EdgeListTag = use_list, 
+         typename VertexLabel = no_label, 
+         typename EdgeLabel = no_label, 
+         typename DirectionTag = undirected
+         > class AdjacencyList
 {
 
     using config = detail::Config<VertexListTag, OutEdgeListTag, EdgeListTag, VertexLabel, EdgeLabel, DirectionTag>;
@@ -228,7 +228,7 @@ template <
 
     using Graph = AdjacencyList<VertexListTag, OutEdgeListTag, EdgeListTag, VertexLabel, EdgeLabel, DirectionTag>;
 
-public:
+    public:
     using vertex_list = typename config::vertex_list_type;
     using edge_list = typename config::edge_list_type;
     using out_edge_list = typename config::out_edge_list_type;
@@ -261,7 +261,7 @@ public:
         vertices_.clear();
         edges_.clear();
     }
-    
+
     vertices_size_type num_vertices() const
     {
         return vertices_.size();
@@ -286,7 +286,7 @@ public:
     {
         return vertices_.descriptor_range();
     }
-    
+
     Range<edge_iterator> edges() const 
     {
         return edges_.descriptor_range();
@@ -311,19 +311,20 @@ public:
         return gubg::iterator::transform(in_edges(v), T(this));
     }
 
-    vertex_descriptor add_vertex(const VertexLabel & l = VertexLabel())
+    vertex_descriptor add_vertex()
     {
-        return vertices_.append(Vertex(l));
-    }
-    
-    vertex_descriptor add_vertex(VertexLabel && l)
-    {
-        return vertices_.append(Vertex(std::move(l)));
+        return vertices_.append(Vertex(VertexLabel()));
     }
 
-    edge_descriptor add_edge(vertex_descriptor u, vertex_descriptor v, const EdgeLabel & l = EdgeLabel())
+    template <typename Label>
+    vertex_descriptor add_vertex(Label && l)
     {
-        edge_descriptor e = edges_.append(Edge(u, v, l));
+        return vertices_.append(Vertex(std::forward<Label>(l)));
+    }
+
+    edge_descriptor add_edge(vertex_descriptor u, vertex_descriptor v)
+    {
+        edge_descriptor e = edges_.append(Edge(u, v, EdgeLabel()));
 
         vertices_.get(u).add_outgoing(e);
         vertices_.get(v).add_incoming(e);
@@ -331,9 +332,10 @@ public:
         return e;
     }
 
-    edge_descriptor add_edge(vertex_descriptor u, vertex_descriptor v, EdgeLabel && l)
+    template <typename Label>
+    edge_descriptor add_edge(vertex_descriptor u, vertex_descriptor v, Label && l)
     {
-        edge_descriptor e = edges_.append(Edge(u, v, l));
+        edge_descriptor e = edges_.append(Edge(u, v, std::forward<Label>(l)));
 
         vertices_.get(u).add_outgoing(e);
         vertices_.get(v).add_incoming(e);
@@ -375,6 +377,119 @@ public:
     vertex_list vertices_;
     edge_list edges_;
 };
+
+} }
+
+#include "gubg/graph/Traits.hpp"
+
+namespace gubg { namespace graph {
+
+    #define TDEF template <typename VertexListTag, typename OutEdgeListTag, typename EdgeListTag, typename VertexLabel, typename EdgeLabel, typename DirectionTag>
+    #define CDEF AdjacencyList<VertexListTag, OutEdgeListTag, EdgeListTag, VertexLabel, EdgeLabel, DirectionTag>
+
+    TDEF typename Traits<CDEF>::vertices_size_type num_vertices(const CDEF & g)
+    {
+        return g.num_vertices();
+    }
+
+    TDEF typename Traits<CDEF>::edges_size_type num_edges(const CDEF & g)
+    {
+        return g.num_edges();
+    }
+
+    TDEF typename Traits<CDEF>::degree_type out_degree(typename Traits<CDEF>::vertex_descriptor v, const CDEF & g)
+    {
+        return g.out_degree(v);
+    }
+
+    TDEF typename Traits<CDEF>::degree_type in_degree(typename Traits<CDEF>::vertex_descriptor v, const CDEF & g, std::enable_if<Traits<CDEF>::has_incoming_edge_info> * /*dummy*/ = nullptr)
+    {
+        return g.in_degree(v);
+    }
+
+    TDEF Range<typename Traits<CDEF>::vertex_iterator> vertices(const CDEF & g) 
+    {
+        return g.vertices();
+    }
+
+    TDEF Range<typename Traits<CDEF>::edge_iterator> edges(const CDEF & g)
+    {
+        return g.edges();
+    }
+
+    TDEF Range<typename Traits<CDEF>::out_edge_iterator> out_edges(typename Traits<CDEF>::vertex_descriptor v, const CDEF & g)
+    {
+        return g.out_edges(v);
+    }
+
+    TDEF Range<typename Traits<CDEF>::out_edge_iterator> in_edges(typename Traits<CDEF>::vertex_descriptor v, const CDEF & g, std::enable_if_t<Traits<CDEF>::has_incoming_edge_info> * /*dummy*/ = nullptr)
+    {
+        return g.in_edges(v);
+    }
+
+    TDEF Range<typename Traits<CDEF>::adjacent_iterator> adjacent_vertices(typename Traits<CDEF>::vertex_descriptor v, const CDEF & g)
+    {
+        return g.adjacent_vertices(v);
+    }
+
+    TDEF Range<typename Traits<CDEF>::inv_adjacent_iterator> inv_adjacent_vertices(typename Traits<CDEF>::vertex_descriptor v, const CDEF & g, std::enable_if<Traits<CDEF>::has_incoming_edge_info> * /*dummy*/ = nullptr)
+    {
+        return g.inv_adjacent_vertices(v);
+    }
+    
+    TDEF typename Traits<CDEF>::vertex_descriptor add_vertex(CDEF & g)
+    {
+        return g.add_vertex();
+    }
+
+    
+    template <typename VertexListTag, typename OutEdgeListTag, typename EdgeListTag, typename VertexLabel, typename EdgeLabel, typename DirectionTag, typename Label>
+    typename Traits<CDEF>::vertex_descriptor add_vertex(Label && l, CDEF & g)
+    {
+        return g.add_vertex(std::forward<Label>(l));
+    }
+
+    TDEF typename Traits<CDEF>::edge_descriptor add_edge(typename Traits<CDEF>::vertex_descriptor u, typename Traits<CDEF>::vertex_descriptor v, CDEF & g)
+    {
+        return g.add_edge(u, v);
+    }
+
+    template <typename VertexListTag, typename OutEdgeListTag, typename EdgeListTag, typename VertexLabel, typename EdgeLabel, typename DirectionTag, typename Label>
+    typename Traits<CDEF>::edge_descriptor add_edge(typename Traits<CDEF>::vertex_descriptor u, typename Traits<CDEF>::vertex_descriptor v, Label && l, CDEF & g)
+    {
+        return g.add_edge(u, v, std::forward<Label>(l));
+    }
+
+
+    TDEF typename Traits<CDEF>::vertex_descriptor source(typename Traits<CDEF>::edge_descriptor e, const CDEF & g)
+    {
+        return g.source(e);
+    }
+
+    TDEF typename Traits<CDEF>::vertex_descriptor target(typename Traits<CDEF>::edge_descriptor e, const CDEF & g)
+    {
+        return g.target(e);
+    }
+
+    TDEF const typename Traits<CDEF>::vertex_label_type & vertex_label(typename Traits<CDEF>::vertex_descriptor v, const CDEF & g, std::enable_if_t<Traits<CDEF>::has_vertex_label> * /*dummy*/ = nullptr)
+    {
+        return g.vertex_label(v);
+    }
+
+    TDEF typename Traits<CDEF>::vertex_label_type & vertex_label(typename Traits<CDEF>::vertex_descriptor v, CDEF & g, std::enable_if_t<Traits<CDEF>::has_vertex_label> * /*dummy*/ = nullptr) 
+    {
+        return g.vertex_label(v);
+    }
+
+    TDEF const typename Traits<CDEF>::edge_label_type & edge_label(typename Traits<CDEF>::edge_descriptor e, const CDEF & g, std::enable_if_t<Traits<CDEF>::has_edge_label> * /*dummy*/ = nullptr)
+    {
+        return g.edge_label(e);
+    }
+
+    TDEF typename Traits<CDEF>::edge_label_type & edge_label(typename Traits<CDEF>::edge_descriptor e, CDEF & g, std::enable_if_t<Traits<CDEF>::has_edge_label> * /*dummy*/ = nullptr)
+    {
+        return g.edge_label(e);
+    }
 
 } }
 

@@ -15,16 +15,16 @@ namespace gubg { namespace graph {
         template <typename G, typename M>
         void fill_indegree_map(const G & g, M & m, bidirectional)
         {
-            for(auto v : g.vertices())
-                m[v] = g.in_degree(v);
+            for(auto v : vertices(g))
+                m[v] = in_degree(v, g);
         }
         
         template <typename G, typename M>
         void fill_indegree_map(const G & g, M & m, directed)
         {
-            for (auto e : g.edges())
+            for (auto e : edges(g))
             {
-                auto it = m.insert(std::make_pair(g.target(e), 0)).first;
+                auto it = m.insert(std::make_pair(target(e, g), 0)).first;
                 ++(it->second);
             }
         }
@@ -63,7 +63,7 @@ namespace gubg { namespace graph {
 
             *out_it++ = vd;
 	    ++count;
-            for(auto v : g.adjacent_vertices(vd))
+            for(auto v : adjacent_vertices(vd, g))
 	    {
                 auto it2 = in_degree_map.find(v);
                 MSS(it2 != in_degree_map.end());
@@ -77,7 +77,7 @@ namespace gubg { namespace graph {
 
         // it is a correct topological order if the indegree map contains only zero's after processing
         MSS(std::all_of(RANGE(in_degree_map), [](auto & p) { return p.second == 0; }));
-	MSS(count == g.num_vertices());
+	MSS(count == num_vertices(g));
 
         MSS_END();
     }   
