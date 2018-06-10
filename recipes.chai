@@ -7,7 +7,7 @@ root.book("gubg/algo", fun(b){
 	r.depends_on("io/func")
     })
 
-    b.recipe("ut", TargetType.Executable, fun(r){
+    b.recipe("ut", fun(r){
         r.add("test/src", "**.cpp")
         r.depends_on("func")
         r.depends_on("/catch/func")
