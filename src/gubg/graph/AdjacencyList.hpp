@@ -353,22 +353,26 @@ typename VertexListTag = use_list,
         return edges_.get(e).target();
     }
 
-    const VertexLabel & vertex_label(vertex_descriptor d, std::enable_if_t<!std::is_same<VertexLabel, no_label>::value> * /*dummy*/ = nullptr) const
+    template <typename T = VertexLabel>
+    const VertexLabel & vertex_label(vertex_descriptor d, std::enable_if_t<!std::is_same<T, no_label>::value> * /*dummy*/ = nullptr) const
     {
         return vertices_.get(d).label_;
     }
 
-    VertexLabel & vertex_label(vertex_descriptor d, std::enable_if_t<!std::is_same<VertexLabel, no_label>::value> * /*dummy*/ = nullptr) 
+    template <typename T = VertexLabel>
+    VertexLabel & vertex_label(vertex_descriptor d, std::enable_if_t<!std::is_same<T, no_label>::value> * /*dummy*/ = nullptr) 
     {
         return vertices_.get(d).label_;
     }
 
-    const EdgeLabel & edge_label(edge_descriptor d, std::enable_if_t<!std::is_same<EdgeLabel, no_label>::value> * /*dummy*/ = nullptr) const
+    template <typename T = EdgeLabel>
+    const EdgeLabel & edge_label(edge_descriptor d, std::enable_if_t<!std::is_same<T, no_label>::value> * /*dummy*/ = nullptr) const
     {
         return edges_.get(d).label_;
     }
 
-    EdgeLabel & edge_label(edge_descriptor d, std::enable_if_t<!std::is_same<EdgeLabel, no_label>::value> * /*dummy*/ = nullptr)
+    template <typename T = EdgeLabel>
+    EdgeLabel & edge_label(edge_descriptor d, std::enable_if_t<!std::is_same<T, no_label>::value> * /*dummy*/ = nullptr)
     {
         return edges_.get(d).label_;
     }
