@@ -2,6 +2,7 @@
 #define HEADER_gubg_optimization_SCG_hpp_ALREADY_INCLUDED
 
 #include "gubg/debug.hpp"
+#include "gubg/hr.hpp"
 #include <array>
 #include <cmath>
 #include <cassert>
@@ -44,8 +45,10 @@ namespace gubg { namespace optimization {
                 auto &h0 = history_data_[iteration_&1u];
                 gradient(h0.r, h0.w);
                 h0.p = h0.r;
+                L("     " << C(hr(h0.r)));
 
                 h0.eval = function(h0.w);
+                L("     Current value: " << C(h0.eval));
             }
 
             for (; true; ++iteration_)
@@ -53,76 +56,81 @@ namespace gubg { namespace optimization {
                 auto &h0 = history_data_[iteration_&1u];
                 auto &h1 = history_data_[(iteration_+1)&1u];
 
+                //Report current value and weights to outer_
                 outer_.scg_params(iteration_, h0.eval, h0.w);
 
                 L("2. Calculate second order information");
                 h0.ss_p = Params::sum_squares(h0.p);
                 if (success_)
                 {
+                    L("     Success: updating parameters to increase output");
                     //TODO: Causes division by zero sometimes
                     const Float sigma_k = sigma_/std::sqrt(h0.ss_p);
-                    L(C(sigma_k));
+                    L("     Epsilon used for approximating second order info " << C(sigma_k));
                     h1.w = h0.w;
                     Params::update(h1.w, sigma_k, h0.p);
                     gradient(h1.r, h1.w);
                     Params::update(h1.r, -1.0, h0.r);
                     delta_k_ = -Params::inprod(h0.p, h1.r)/sigma_k;
-                    L(C(delta_k_));
+                    L("     Hessian positive definiteness along h0.p " << C(delta_k_));
                 }
 
                 L("3. Scale");
                 delta_k_ += (lambda_k_-lambda_bar_k_)*h0.ss_p;
-                L(C(delta_k_));
+                L("     " << C(delta_k_));
 
-                L("4. Make Hessian positive definite");
+                L("4. Make Hessian positive definite, if needed");
                 if (delta_k_ <= 0)
                 {
+                    L("     Hessian is negative");
                     lambda_bar_k_ = 2.0*(lambda_k_-delta_k_/h0.ss_p);
                     delta_k_ = -delta_k_ + lambda_k_*h0.ss_p;
                     lambda_k_ = lambda_bar_k_;
-                    L(C(delta_k_)C(lambda_k_)C(lambda_bar_k_));
+                    L("     " << C(delta_k_)C(lambda_k_)C(lambda_bar_k_));
                 }
                 assert(delta_k_ >= 0);
 
                 L("5. Calculate step size");
                 const Float mu_k = Params::inprod(h0.p, h0.r);
                 const Float alpha_k = mu_k/delta_k_;
-                L(C(mu_k)C(alpha_k));
+                L("     " << C(mu_k)C(alpha_k));
 
                 L("6. Comparison parameter");
                 h1.w = h0.w;
                 Params::update(h1.w, alpha_k, h0.p);
                 h1.eval = function(h1.w);
                 const Float diff_k = 2.0*delta_k_*(h1.eval - h0.eval)/(mu_k*mu_k);
-                L(C(diff_k));
+                L("     New value: " << C(h1.eval)C(diff_k));
 
-                L("7. Reduce error, if possible");
+                L("7. Increase output, if possible");
                 if (diff_k >= 0.0)
                 {
-                    //h1.w is already correct from step 6
+                    L("     Could increase output to " << C(h1.eval));
+                    //h1.w and h1.eval are already correct from step 6
                     gradient(h1.r, h1.w);
                     lambda_bar_k_ = 0.0;
                     success_ = true;
                     if ((iteration_+1)%order_ == 0)
                     {
-                        L("Restarting algorithm");
+                        L("     Restarting algorithm");
                         h1.p = h1.r;
                     }
                     else
                     {
-                        L("Continuing ...");
+                        L("     Continuing ...");
                         const Float beta_k = (Params::sum_squares(h1.r)-Params::inprod(h1.r, h0.r))/mu_k;
                         h1.p = h1.r;
                         Params::update(h1.p, beta_k, h0.p);
                     }
                     if (diff_k >= 0.75)
                     {
-                        L("Reducing the scale parameter");
                         lambda_k_ *= 0.25;
+                        L("     Reducing the scale parameter to " << C(lambda_k_));
                     }
                 }
                 else
                 {
+                    L("     Could not increase output");
                     lambda_bar_k_ = lambda_k_;
                     success_ = false;
                 }
@@ -130,16 +138,16 @@ namespace gubg { namespace optimization {
                 L("8. Increase scale, if needed");
                 if (diff_k < 0.25)
                 {
-                    L("Increasing the scale parameter");
                     lambda_k_ += delta_k_*(1.0-diff_k)/h0.ss_p;
+                    L("     Increasing the scale parameter to " << C(lambda_k_));
                 }
 
                 L("9. Check for end");
-                if (outer_.scg_terminate(iteration_, h0.eval, h0.r))
+                if (outer_.scg_terminate(iteration_, h1.eval, h1.r))
                 {
-                    L("We found a suitable maximum in iteration " << iteration_ << ": " << h0.eval);
-                    params = h0.w;
-                    return h0.eval;
+                    L("     We found a suitable maximum in iteration " << iteration_ << ": " << C(h1.eval));
+                    params = h1.w;
+                    return h1.eval;
                 }
             }
         }

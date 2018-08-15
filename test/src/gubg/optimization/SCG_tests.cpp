@@ -96,7 +96,7 @@ namespace  {
         }
     };
 } 
-TEST_CASE("optimization::SCG tests with outer", "[ut][scg]")
+TEST_CASE("optimization::SCG tests with outer", "[ut][optimization][SCG]")
 {
     Outer outer;
     optimization::SCG<Float, Params, Outer> scg(outer);
