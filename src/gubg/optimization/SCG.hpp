@@ -33,34 +33,47 @@ namespace gubg { namespace optimization {
         SCG(): outer_(do_nothing_outer_) {}
         SCG(Outer &outer): outer_(outer) {}
 
+        void clear()
+        {
+            do_setup_ = true;
+            iteration_ = 0;
+        }
+
         template <typename Function, typename Gradient>
         Float operator()(typename Params::Type &params, const Function &function, const Gradient &gradient)
         {
             S("");
 
-            L("1. Initialization");
-            {
-                setup_(params);
+            Float ret = 0.0;
 
-                auto &h0 = history_data_[iteration_&1u];
-                gradient(h0.r, h0.w);
-                h0.p = h0.r;
-                L("     " << C(hr(h0.r)));
-
-                h0.eval = function(h0.w);
-                L("     Current value: " << C(h0.eval));
-            }
-
-            for (; true; ++iteration_)
+            for (bool stop = false; !stop; ++iteration_)
             {
                 auto &h0 = history_data_[iteration_&1u];
                 auto &h1 = history_data_[(iteration_+1)&1u];
+
+                if (setup_(params))
+                {
+                    L("1. Initialization");
+                    L("     Doing full initialization");
+                    gradient(h0.r, h0.w);
+                    h0.p = h0.r;
+
+                    h0.eval = function(h0.w);
+                    L("     Current value: " << C(h0.eval));
+                }
+
+                L(C(iteration_)C(h0.eval)C(h1.eval));
+                L("     " << C(hr(h0.w)));
+                L("     " << C(hr(h0.r)));
+                L("     " << C(hr(h0.p)));
+                L("     " << C(hr(h1.r)));
 
                 //Report current value and weights to outer_
                 outer_.scg_params(iteration_, h0.eval, h0.w);
 
                 L("2. Calculate second order information");
                 h0.ss_p = Params::sum_squares(h0.p);
+                L("     " << C(h0.ss_p));
                 if (success_)
                 {
                     L("     Success: updating parameters to increase output");
@@ -88,6 +101,7 @@ namespace gubg { namespace optimization {
                     lambda_k_ = lambda_bar_k_;
                     L("     " << C(delta_k_)C(lambda_k_)C(lambda_bar_k_));
                 }
+                L("     " << C(lambda_k_));
                 assert(delta_k_ >= 0);
 
                 L("5. Calculate step size");
@@ -103,11 +117,20 @@ namespace gubg { namespace optimization {
                 L("     New value: " << C(h1.eval)C(diff_k));
 
                 L("7. Increase output, if possible");
-                if (diff_k >= 0.0)
+                const bool could_increase = (diff_k >= 0.0);
+                if (could_increase)
                 {
                     L("     Could increase output to " << C(h1.eval));
                     //h1.w and h1.eval are already correct from step 6
                     gradient(h1.r, h1.w);
+                    h1.ss_r = Params::sum_squares(h1.r);
+                    if (h1.ss_r < 0.00001)
+                    {
+                        L("     STOP: gradient is becoming very small, we found a minimum " << C(h1.ss_r)C(h1.eval));
+                        ret = h1.eval;
+                        params = h1.w;
+                        stop = true;
+                    }
                     lambda_bar_k_ = 0.0;
                     success_ = true;
                     if ((iteration_+1)%order_ == 0)
@@ -118,7 +141,7 @@ namespace gubg { namespace optimization {
                     else
                     {
                         L("     Continuing ...");
-                        const Float beta_k = (Params::sum_squares(h1.r)-Params::inprod(h1.r, h0.r))/mu_k;
+                        const Float beta_k = (h1.ss_r-Params::inprod(h1.r, h0.r))/mu_k;
                         h1.p = h1.r;
                         Params::update(h1.p, beta_k, h0.p);
                     }
@@ -132,6 +155,7 @@ namespace gubg { namespace optimization {
                 {
                     L("     Could not increase output");
                     lambda_bar_k_ = lambda_k_;
+                    h1 = h0;
                     success_ = false;
                 }
 
@@ -139,28 +163,43 @@ namespace gubg { namespace optimization {
                 if (diff_k < 0.25)
                 {
                     lambda_k_ += delta_k_*(1.0-diff_k)/h0.ss_p;
-                    L("     Increasing the scale parameter to " << C(lambda_k_));
+                    L("     Increasing the scale parameter to " << C(lambda_k_)C(h0.ss_p));
+                }
+
+                if (lambda_k_ > 1.0e100)
+                {
+                    L("Something strange is happening");
+                    do_setup_ = true;
                 }
 
                 L("9. Check for end");
-                if (outer_.scg_terminate(iteration_, h1.eval, h1.r))
+                const auto &h = (could_increase ? h1 : h0);
+                if (outer_.scg_terminate(iteration_, h.eval, h.r))
                 {
-                    L("     We found a suitable maximum in iteration " << iteration_ << ": " << C(h1.eval));
-                    params = h1.w;
-                    return h1.eval;
+                    L("     STOP: user indicated we can stop " << iteration_ << ": " << C(h.eval));
+                    ret = h.eval;
+                    params = h.w;
+                    stop = true;
                 }
             }
+
+            L(C(ret));
+            return ret;
         }
 
     private:
-        void setup_(const typename Params::Type &params)
+        bool do_setup_ = true;
+        bool setup_(const typename Params::Type &params)
         {
+            if (!do_setup_)
+                if (Params::order(params) == order_)
+                    //Order is still the same: do not setup again
+                    return false;
+
             S("");
 
             order_ = Params::order(params);
             L(C(order_));
-
-            iteration_ = 0;
 
             success_ = true;
 
@@ -177,10 +216,13 @@ namespace gubg { namespace optimization {
             lambda_k_ = 0.00001;
             lambda_bar_k_ = 0.0;
             L(C(sigma_)C(lambda_k_)C(lambda_bar_k_));
+
+            do_setup_ = false;
+            return true;
         }
 
         unsigned int order_;
-        unsigned int iteration_;
+        unsigned int iteration_ = 0;
         bool success_ = true;
         Float sigma_;
 
