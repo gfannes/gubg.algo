@@ -47,7 +47,7 @@ namespace gubg { namespace xtree {
             return acc;
         }
 
-        //Root is at depth 1
+        //Root is at depth 0
         unsigned int depth() const
         {
             unsigned int depth = 0;
@@ -57,7 +57,7 @@ namespace gubg { namespace xtree {
                 ++depth;
                 n = n->parent_.lock();
             }
-            return depth;
+            return depth-1;
         }
 
     private:
