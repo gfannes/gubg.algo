@@ -33,6 +33,7 @@ namespace gubg { namespace xtree {
         Self &emplace_back(Args ... args)
         {
             Ptr child(new Self(std::forward<Args>(args)...));
+            child->parent_ = SFT::shared_from_this();
             childs_.push_back(child);
             return *child;
         }

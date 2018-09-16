@@ -30,7 +30,7 @@ TEST_CASE("gubg::Xtree tests", "[ut][xtree][Model]")
         Model::Path path;
         node.path(path);
         for (const auto &ptr: path)
-            std::cout << ptr->name << " ";
+            std::cout << ptr->name << '/';
         std::cout << std::endl;
         std::cout << node.v << std::endl;
         return true;
