@@ -8,11 +8,16 @@ namespace gubg { namespace xtree {
     template <typename Data>
     class Model
     {
+    private:
+        using Self = Model<Data>;
+
     public:
         using Node = xtree::Node<Data>;
         using Path = typename Node::Path;
 
         Model(): root_(new Node) {}
+
+        void clear() {*this = Self();}
 
         Node &root() {return *root_;}
 

@@ -47,6 +47,19 @@ namespace gubg { namespace xtree {
             return acc;
         }
 
+        //Root is at depth 1
+        unsigned int depth() const
+        {
+            unsigned int depth = 0;
+            auto n = SFT::shared_from_this();
+            while (!!n)
+            {
+                ++depth;
+                n = n->parent_.lock();
+            }
+            return depth;
+        }
+
     private:
         template <typename Data_>
         friend class Model;
