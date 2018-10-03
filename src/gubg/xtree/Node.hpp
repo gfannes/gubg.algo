@@ -41,6 +41,9 @@ namespace gubg { namespace xtree {
             return *child;
         }
 
+        CPtr parent() const {return parent_.lock();}
+        Ptr parent() {return parent_.lock();}
+
         //Adds a link from this to dst
         Self &add_link(Self &dst)
         {
@@ -101,6 +104,7 @@ namespace gubg { namespace xtree {
             MSS_END();
         }
 
+        //Simple iteration over the tree, without the xlinks
         template <typename Acc, typename Ftor>
         Acc accumulate(Acc acc, Ftor &&ftor) const
         {
@@ -116,6 +120,51 @@ namespace gubg { namespace xtree {
             for (const auto &child: childs_)
                 acc = child->accumulate(acc, ftor);
             return acc;
+        }
+
+        //Iteration over the tree, with xlinks
+        //Second argument to ftor() indicates if we are entering or leaving this node
+        template <typename Ftor>
+        bool traverse(Ftor &&ftor) const
+        {
+            MSS_BEGIN(bool);
+            MSS(ftor(*this, true));
+            for (const auto &child: childs_)
+            {
+                MSS(child->traverse(ftor));
+            }
+            for (const auto &wptr: xouts_)
+            {
+                auto ptr = wptr.lock();
+                MSS(ptr->traverse(ftor));
+            }
+            MSS(ftor(*this, false));
+            MSS_END();
+        }
+
+        //Aggregation over the tree, from leaf to root, without xlinks
+        //ftor(dst, src) should aggregate a child (src) into the parent (dst)
+        template <typename Ftor>
+        bool aggregate_tree(Ftor &&ftor) const
+        {
+            MSS_BEGIN(bool);
+            for (const auto &child: childs_)
+            {
+                MSS(child->aggregate_tree(ftor));
+                MSS(ftor(*this, *child));
+            }
+            MSS_END();
+        }
+        template <typename Ftor>
+        bool aggregate_tree(Ftor &&ftor)
+        {
+            MSS_BEGIN(bool);
+            for (const auto &child: childs_)
+            {
+                MSS(child->aggregate_tree(ftor));
+                MSS(ftor(*this, *child));
+            }
+            MSS_END();
         }
 
         //Root is at depth 0

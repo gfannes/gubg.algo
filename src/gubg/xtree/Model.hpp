@@ -36,8 +36,9 @@ namespace gubg { namespace xtree {
 
         Node &root() {return *root_;}
         Node_ptr &root_ptr() {return root_;}
-        Node_cptr &root_ptr() const {return root_;}
+        Node_cptr root_ptr() const {return root_;}
 
+        //Simple iteration over the tree, without the xlinks
         template <typename Acc, typename Ftor>
         Acc accumulate(Acc acc, Ftor &&ftor) const
         {
@@ -47,6 +48,38 @@ namespace gubg { namespace xtree {
         Acc accumulate(Acc acc, Ftor &&ftor)
         {
             return root_->accumulate(acc, ftor);
+        }
+
+        //Iteration over the tree, with xlinks
+        //Second argument to ftor() indicates if we are entering or leaving this node
+        template <typename Ftor>
+        bool traverse(Ftor &&ftor) const
+        {
+            return root_->traverse(ftor);
+        }
+        template <typename Ftor>
+        bool traverse(Ftor &&ftor)
+        {
+            return root_->traverse(ftor);
+        }
+
+        //Aggregation over the tree, from leaf to root, with xlinks
+        //ftor(dst, src) should aggregate a child or xlink (src) into the parent (dst)
+        template <typename Ftor>
+        bool aggregate(Ftor &&ftor)
+        {
+            MSS_BEGIN(bool);
+
+            MSS(root_->aggregate_tree(ftor));
+
+            auto aggregate_xlinks = [&](bool ok, auto &node)
+            {
+                AGG(ok, node.each_out([&](auto &to){return ftor(node, to);}));
+                return ok;
+            };
+            MSS(root_->accumulate(true, aggregate_xlinks));
+
+            MSS_END();
         }
 
         bool process_xlinks()
