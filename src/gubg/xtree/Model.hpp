@@ -10,6 +10,13 @@
 
 namespace gubg { namespace xtree { 
 
+    //Allows data to be stored in a tree
+    //Normal tree-based dependencies are taken for granted (edges from parent to child)
+    //Additional dependencies can be add (cross-tree dependencies), but they should not create cycles
+    //When aggregating data over the tree, both the tree-based and xtree-based dependencies are taken into account
+    //Care is taken to ensure dependencies are incorporated only once
+    //The binary data aggregation operation should be commutative `f(a,b) = f(b,a)` and associative `f(f(a,b),c) = f(a,f(b,c))`
+
     template <typename Data>
     class Model
     {
