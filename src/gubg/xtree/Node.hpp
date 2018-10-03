@@ -3,6 +3,7 @@
 
 #include "gubg/xtree/Path.hpp"
 #include <vector>
+#include <list>
 #include <memory>
 
 namespace gubg { namespace xtree { 
@@ -29,6 +30,7 @@ namespace gubg { namespace xtree {
             path_(p, SFT::shared_from_this());
         }
 
+        //Adds a child to the tree
         template <typename ... Args>
         Self &emplace_back(Args ... args)
         {
@@ -38,8 +40,58 @@ namespace gubg { namespace xtree {
             return *child;
         }
 
+        //Adds a link from this to dst
+        Self &add_link(Self &dst)
+        {
+            dst.xins_.push_back(SFT::weak_from_this());
+            xouts_.push_back(dst.weak_from_this());
+            return *this;
+        }
+
+        template <typename Ftor>
+        void each_out(Ftor && ftor) const
+        {
+            for (auto &wptr: xouts_)
+            {
+                auto ptr = wptr.lock();
+                //We assume no stale links are present
+                assert(!!ptr);
+                ftor(*ptr);
+            }
+        }
+        template <typename Ftor>
+        void each_in(Ftor && ftor) const
+        {
+            for (auto &wptr: xins_)
+            {
+                auto ptr = wptr.lock();
+                //We assume no stale links are present
+                assert(!!ptr);
+                ftor(*ptr);
+            }
+        }
+        template <typename Ftor>
+        void each_sub(Ftor && ftor) const
+        {
+            for (auto &wptr: xsubs_)
+            {
+                auto ptr = wptr.lock();
+                //We assume no stale links are present
+                assert(!!ptr);
+                ftor(*ptr);
+            }
+        }
+
         template <typename Acc, typename Ftor>
         Acc accumulate(Acc acc, Ftor &&ftor) const
+        {
+            acc = ftor(acc, *this);
+            for (const auto &child: childs_)
+                acc = child->accumulate(acc, ftor);
+            return acc;
+        }
+        template <typename Acc, typename Ftor>
+        Acc accumulate(Acc acc, Ftor &&ftor)
         {
             acc = ftor(acc, *this);
             for (const auto &child: childs_)
@@ -77,6 +129,15 @@ namespace gubg { namespace xtree {
 
         std::vector<Ptr> childs_;
         WPtr parent_;
+
+        //Keeps track of cross-node links
+        //This information is specified by the user via add_link()
+        std::list<WPtr> xins_;
+        std::list<WPtr> xouts_;
+
+        //Indicates what cross-subtrees are reachable from this node
+        //This information is computed and distributed over the tree based on the xins_ and xouts_
+        std::list<WPtr> xsubs_;
     };
 
 } } 
