@@ -20,12 +20,15 @@ namespace gubg { namespace xtree {
         using Node = xtree::Node<Data>;
         using Path = typename Node::Path;
         using Node_ptr = typename Node::Ptr;
+        using Node_cptr = typename Node::CPtr;
 
         Model(): root_(new Node) {}
 
         void clear() {*this = Self();}
 
         Node &root() {return *root_;}
+        Node_ptr &root_ptr() {return root_;}
+        Node_cptr &root_ptr() const {return root_;}
 
         template <typename Acc, typename Ftor>
         Acc accumulate(Acc acc, Ftor &&ftor) const

@@ -49,6 +49,16 @@ namespace gubg { namespace xtree {
         }
 
         template <typename Ftor>
+        void each_child(Ftor && ftor) const
+        {
+            for (auto &ptr: childs_)
+            {
+                //We assume no stale childs are present
+                assert(!!ptr);
+                ftor(*ptr);
+            }
+        }
+        template <typename Ftor>
         void each_out(Ftor && ftor) const
         {
             for (auto &wptr: xouts_)
