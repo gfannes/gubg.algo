@@ -16,9 +16,9 @@ namespace  {
 
     auto print_node = [](bool, const auto &node){
         std::ostringstream oss;
-        node.each_out([&](const auto &to){oss << " ->" << to.name;});
-        node.each_in([&](const auto &to){oss << " <-" << to.name;});
-        node.each_sub([&](const auto &to){oss << " =>" << to.name;});
+        node.each_out([&](const auto &to){oss << " ->" << to.name; return true;});
+        node.each_in([&](const auto &to){oss << " <-" << to.name; return true;});
+        node.each_sub([&](const auto &to){oss << " =>" << to.name; return true;});
 
         Model::Path path;
         node.path(path);
@@ -59,9 +59,8 @@ TEST_CASE("gubg::xtree xlinks test", "[ut][xtree][xlinks]")
     auto &g = c.emplace_back("g");
 
     f.add_link(b);
-    d.add_link(c);
 
-    xtree.process_xlinks();
+    REQUIRE(xtree.process_xlinks([](const auto &node, const auto &from, const auto &msg){std::cout << "Problem detected for node " << node.name << ": " << msg << " when processing " << from.name << std::endl;}));
 
     xtree.accumulate(true, print_node);
 }

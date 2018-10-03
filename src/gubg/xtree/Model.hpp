@@ -4,6 +4,7 @@
 #include "gubg/xtree/Node.hpp"
 #include "gubg/Range.hpp"
 #include "gubg/debug.hpp"
+#include "gubg/mss.hpp"
 #include <map>
 #include <set>
 #include <utility>
@@ -48,18 +49,24 @@ namespace gubg { namespace xtree {
             return root_->accumulate(acc, ftor);
         }
 
-        void process_xlinks()
+        bool process_xlinks()
         {
-            S("");
+            return process_xlinks([](const auto &node, const auto &msg){});
+        }
+
+        template <typename Problem_cb>
+        bool process_xlinks(Problem_cb && problem_cb)
+        {
+            MSS_BEGIN(bool, "");
 
             using Links = std::map<Node_ptr, std::set<Node_ptr>>;
 
             Links todo;
-            auto lambda = [&](bool, auto &node){
-                node.each_out([&](auto &to){todo[node.shared_from_this()].insert(to.shared_from_this());});
-                return true;
+            auto lambda = [&](bool ok, auto &node){
+                node.xsubs_.clear();
+                return ok && node.each_out([&](auto &to){todo[node.shared_from_this()].insert(to.shared_from_this()); return true;});
             };
-            accumulate(true, lambda);
+            MSS(accumulate(true, lambda));
 
             Links done;
             while (!todo.empty())
@@ -76,18 +83,21 @@ namespace gubg { namespace xtree {
                         //Distribute this cross-dependency down to the root
                         for (auto node = from; !!node; node = node->parent_.lock())
                         {
+                            MSS(node != to, problem_cb(*node, *from, "cycle detected"););
+                            done[node].insert(to);
+
                             //All nodes that depend on node need this new dependency as well,
                             //we will add that to `todo` and process them in the next iteration
                             auto stage_new_dependency = [&](auto &f)
                             {
+                                MSS_BEGIN(bool);
                                 auto f_ptr = f.shared_from_this();
                                 auto &t_ptr = to;
                                 if (done[f_ptr].count(t_ptr) == 0)
                                     todo[f_ptr].insert(t_ptr);
+                                MSS_END();
                             };
-                            node->each_in(stage_new_dependency);
-
-                            done[node].insert(to);
+                            MSS(node->each_in(stage_new_dependency));
                         }
                     }
                 }
@@ -108,6 +118,7 @@ namespace gubg { namespace xtree {
                         node.xsubs_.push_back(to);
                 }
             }
+            MSS_END();
         }
 
     private:

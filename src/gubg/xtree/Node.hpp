@@ -2,6 +2,7 @@
 #define HEADER_gubg_xtree_Node_hpp_ALREADY_INCLUDED
 
 #include "gubg/xtree/Path.hpp"
+#include "gubg/mss.hpp"
 #include <vector>
 #include <list>
 #include <memory>
@@ -49,47 +50,55 @@ namespace gubg { namespace xtree {
         }
 
         template <typename Ftor>
-        void each_child(Ftor && ftor) const
+        bool each_child(Ftor && ftor) const
         {
+            MSS_BEGIN(bool);
             for (auto &ptr: childs_)
             {
                 //We assume no stale childs are present
                 assert(!!ptr);
-                ftor(*ptr);
+                MSS_Q(ftor(*ptr));
             }
+            MSS_END();
         }
         template <typename Ftor>
-        void each_out(Ftor && ftor) const
+        bool each_out(Ftor && ftor) const
         {
+            MSS_BEGIN(bool);
             for (auto &wptr: xouts_)
             {
                 auto ptr = wptr.lock();
                 //We assume no stale links are present
                 assert(!!ptr);
-                ftor(*ptr);
+                MSS_Q(ftor(*ptr));
             }
+            MSS_END();
         }
         template <typename Ftor>
-        void each_in(Ftor && ftor) const
+        bool each_in(Ftor && ftor) const
         {
+            MSS_BEGIN(bool);
             for (auto &wptr: xins_)
             {
                 auto ptr = wptr.lock();
                 //We assume no stale links are present
                 assert(!!ptr);
-                ftor(*ptr);
+                MSS_Q(ftor(*ptr));
             }
+            MSS_END();
         }
         template <typename Ftor>
-        void each_sub(Ftor && ftor) const
+        bool each_sub(Ftor && ftor) const
         {
+            MSS_BEGIN(bool);
             for (auto &wptr: xsubs_)
             {
                 auto ptr = wptr.lock();
                 //We assume no stale links are present
                 assert(!!ptr);
-                ftor(*ptr);
+                MSS_Q(ftor(*ptr));
             }
+            MSS_END();
         }
 
         template <typename Acc, typename Ftor>
