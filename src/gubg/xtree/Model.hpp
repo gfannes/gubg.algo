@@ -72,6 +72,15 @@ namespace gubg { namespace xtree {
 
             MSS(root_->aggregate_tree(ftor));
 
+            //TODO: this should be done according to the topological order
+            //to make sure xlinks are not taken into account twice in a situation like:
+            //[a]{
+            //  [b](dep:a/d){
+            //    [c]
+            //  }
+            //  [d](dep:a/b/c)
+            //}
+            //Here, potentially, a/b/c is aggregated twice into a/b
             auto aggregate_xlinks = [&](bool ok, auto &node)
             {
                 AGG(ok, node.each_out([&](auto &to){return ftor(node, to);}));
