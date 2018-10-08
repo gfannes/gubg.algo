@@ -121,7 +121,6 @@ namespace gubg { namespace xtree {
                     auto &from = p.first;
                     for (const auto &to: p.second)
                     {
-                        L(C(from->name)C(to->name));
                         //Distribute this cross-dependency down to the root
                         for (auto node = from; !!node; node = node->parent_.lock())
                         {
