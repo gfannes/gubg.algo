@@ -123,7 +123,7 @@ namespace gubg { namespace xtree {
         }
 
         //Iteration over the tree, with xlinks
-        //Second argument to ftor() indicates if we are entering or leaving this node
+        //Second argument to ftor() indicates if we are entering (true) or leaving this node (false)
         template <typename Ftor>
         bool traverse(Ftor &&ftor) const
         {

@@ -2,7 +2,7 @@
 #define HEADER_gubg_xtree_Model_hpp_ALREADY_INCLUDED
 
 #include "gubg/xtree/Node.hpp"
-#include "gubg/graph/AdjacencyList.hpp"
+#include "gubg/graph/TopologicalOrder.hpp"
 #include "gubg/Range.hpp"
 #include "gubg/debug.hpp"
 #include "gubg/mss.hpp"
@@ -73,7 +73,7 @@ namespace gubg { namespace xtree {
 
             MSS(root_->aggregate_tree(ftor));
 
-            //TODO: this should be done according to the topological order
+            //We process the subs according to topological order
             //to make sure xlinks are not taken into account twice in a situation like:
             //[a]{
             //  [b](dep:a/d){
@@ -82,16 +82,30 @@ namespace gubg { namespace xtree {
             //  [d](dep:a/b/c)
             //}
             //Here, potentially, a/b/c is aggregated twice into a/b
-            auto aggregate_xlinks = [&](bool ok, auto &node)
+
+            //Compute the topological order:
+            //* Process each node via accumulate()
+            //* each_out_edge() only iterates over the subs
+            graph::TopologicalOrder<Node_ptr> topo;
+            auto process_topo = [&](bool ok, auto &node)
             {
-                AGG(ok, node.each_out([&](auto &to){return ftor(node, to);}));
+                auto each_out_edge = [](const Node_ptr &n, auto &&ftor){
+                    return n->each_sub([&](auto &s){return ftor(s.shared_from_this());});
+                };
+                AGG(ok, topo.process(node.shared_from_this(), each_out_edge));
                 return ok;
             };
-            MSS(root_->accumulate(true, aggregate_xlinks));
+            MSS(root_->accumulate(true, process_topo));
 
-            using use_list = graph::use_list;
-            using no_label = graph::no_label;
-            graph::AdjacencyList<use_list, use_list, use_list, no_label, Node_ptr, graph::directed> g;
+            //Aggregate the xlinks according to the topological order
+            for (const auto &node_ptr: topo.order)
+            {
+                auto &node = *node_ptr;
+                auto lambda = [&](auto &to){
+                    return ftor(node, to);
+                };
+                MSS(node.each_out(lambda));
+            }
 
             MSS_END();
         }
@@ -157,9 +171,6 @@ namespace gubg { namespace xtree {
                 for (const auto &to: p.second)
                 {
                     to->path(path);
-                    //TODO: this should be made more intelligent: instead of simply excluding the x-deps
-                    //that are already covered via the tree-based dependencies, there could be a partial overlap
-                    //between node and to, and between different to's for the same node
                     if (std::find_if(RANGE(path), [&](auto &n){return n == node_ptr;}) == path.end())
                         node.xsubs_.push_back(to);
                 }
