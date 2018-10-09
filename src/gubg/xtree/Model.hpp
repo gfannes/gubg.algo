@@ -2,6 +2,7 @@
 #define HEADER_gubg_xtree_Model_hpp_ALREADY_INCLUDED
 
 #include "gubg/xtree/Node.hpp"
+#include "gubg/graph/AdjacencyList.hpp"
 #include "gubg/Range.hpp"
 #include "gubg/debug.hpp"
 #include "gubg/mss.hpp"
@@ -87,6 +88,10 @@ namespace gubg { namespace xtree {
                 return ok;
             };
             MSS(root_->accumulate(true, aggregate_xlinks));
+
+            using use_list = graph::use_list;
+            using no_label = graph::no_label;
+            graph::AdjacencyList<use_list, use_list, use_list, no_label, Node_ptr, graph::directed> g;
 
             MSS_END();
         }
