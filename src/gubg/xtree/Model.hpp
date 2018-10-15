@@ -104,7 +104,7 @@ namespace gubg { namespace xtree {
                 auto lambda = [&](auto &to){
                     return ftor(node, to);
                 };
-                MSS(node.each_out(lambda));
+                MSS(node.each_sub(lambda));
             }
 
             MSS_END();
