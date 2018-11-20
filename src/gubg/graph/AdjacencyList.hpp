@@ -277,7 +277,8 @@ typename VertexListTag = use_list,
         return vertices_.get(v).out_degree();
     }
 
-    degree_type in_degree(vertex_descriptor v, std::enable_if<info::has_incoming> * /*dummy*/ = nullptr) const
+    template <bool has_incoming = info::has_incoming>
+    degree_type in_degree(vertex_descriptor v, std::enable_if<has_incoming> * /*dummy*/ = nullptr) const
     {
         return vertices_.get(v).in_degree();
     }
@@ -295,7 +296,8 @@ typename VertexListTag = use_list,
     {
         return vertices_.get(v).out_edges();
     }
-    Range<out_edge_iterator> in_edges(vertex_descriptor v, std::enable_if_t<info::has_incoming> * /*dummy*/ = nullptr) const
+    template <bool has_incoming = info::has_incoming>
+    Range<out_edge_iterator> in_edges(vertex_descriptor v, std::enable_if_t<has_incoming> * /*dummy*/ = nullptr) const
     {
         return vertices_.get(v).in_edges();
     }
@@ -305,7 +307,8 @@ typename VertexListTag = use_list,
         return gubg::iterator::transform(out_edges(v), T(this));
     }
 
-    Range<inv_adjacent_iterator> inv_adjacent_vertices(vertex_descriptor v, std::enable_if<info::has_incoming> * /*dummy*/ = nullptr) const
+    template <bool has_incoming = info::has_incoming>
+    Range<inv_adjacent_iterator> inv_adjacent_vertices(vertex_descriptor v, std::enable_if<has_incoming> * /*dummy*/ = nullptr) const
     {
         using T = detail::SourceVertexTransformer<Graph>;
         return gubg::iterator::transform(in_edges(v), T(this));
