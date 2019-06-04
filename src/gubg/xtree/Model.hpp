@@ -52,16 +52,24 @@ namespace gubg { namespace xtree {
         }
 
         //Iteration over the tree, with xlinks
-        //Second argument to ftor() indicates if we are entering or leaving this node
+        //Second argument to ftor() indicates if we are entering (true) or leaving this node (false)
         template <typename Ftor>
-        bool traverse(Ftor &&ftor) const
+        bool traverse(Ftor &&ftor, bool once = true, Node_cptr node = nullptr) const
         {
-            return root_->traverse(ftor);
+            if (once)
+                root_->accumulate(true, [](bool ok, auto &node){node.visited_ = false; return ok;});
+            if (!node)
+                node = root_;
+            return node->traverse(ftor, once);
         }
         template <typename Ftor>
-        bool traverse(Ftor &&ftor)
+        bool traverse(Ftor &&ftor, bool once = true, Node_ptr node = nullptr)
         {
-            return root_->traverse(ftor);
+            if (once)
+                root_->accumulate(true, [](bool ok, auto &node){node.visited_ = false; return ok;});
+            if (!node)
+                node = root_;
+            return node->traverse(ftor, once);
         }
 
         //Aggregation over the tree, from leaf to root, with xlinks

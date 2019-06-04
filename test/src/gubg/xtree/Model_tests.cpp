@@ -64,3 +64,33 @@ TEST_CASE("gubg::xtree xlinks test", "[ut][xtree][xlinks]")
 
     xtree.accumulate(true, print_node);
 }
+
+TEST_CASE("gubg::xtree traverse test", "[ut][xtree][traverse]")
+{
+    Model xtree;
+
+    auto &root = xtree.root();
+    auto &lib = root.emplace_back("lib");
+    auto &api = lib.emplace_back("api");
+    auto &core = lib.emplace_back("core");
+    auto &release = lib.emplace_back("release");
+    auto &cli = root.emplace_back("cli");
+    auto &framework = cli.emplace_back("framework");
+    auto &integration = cli.emplace_back("integration");
+    auto &qc = cli.emplace_back("qc");
+    auto &wfc = root.emplace_back("wfc");
+
+    integration.add_link(lib);
+    core.add_link(wfc);
+
+    REQUIRE(xtree.process_xlinks([](const auto &node, const auto &from, const auto &msg){std::cout << "Problem detected for node " << node.name << ": " << msg << " when processing " << from.name << std::endl;}));
+
+    unsigned int ix = 0;
+    auto visit = [&](const auto &node, bool enter){
+        if (!enter)
+            std::cout << ix++ << ": " << node.name << std::endl;
+        return true;
+    };
+
+    xtree.traverse(visit);
+}

@@ -125,20 +125,24 @@ namespace gubg { namespace xtree {
         //Iteration over the tree, with xlinks
         //Second argument to ftor() indicates if we are entering (true) or leaving this node (false)
         template <typename Ftor>
-        bool traverse(Ftor &&ftor) const
+        bool traverse(Ftor &&ftor, bool once) const
         {
+            if (once && visited_)
+                return true;
+
             MSS_BEGIN(bool);
             MSS(ftor(*this, true));
             for (const auto &child: childs_)
             {
-                MSS(child->traverse(ftor));
+                MSS(child->traverse(ftor, once));
             }
             for (const auto &wptr: xouts_)
             {
                 auto ptr = wptr.lock();
-                MSS(ptr->traverse(ftor));
+                MSS(ptr->traverse(ftor, once));
             }
             MSS(ftor(*this, false));
+            visited_ = true;
             MSS_END();
         }
 
@@ -206,6 +210,8 @@ namespace gubg { namespace xtree {
         //Indicates what cross-subtrees are reachable from this node
         //This information is computed and distributed over the tree based on the xins_ and xouts_
         std::list<WPtr> xsubs_;
+
+        mutable bool visited_ = false;
     };
 
 } } 
