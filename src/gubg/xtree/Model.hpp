@@ -56,22 +56,62 @@ namespace gubg { namespace xtree {
         template <typename Ftor>
         bool traverse(Ftor &&ftor, bool once = true, Node_cptr node = nullptr) const
         {
-            if (once)
-                root_->accumulate(true, [](bool ok, auto &node){node.visited_ = false; return ok;});
+            MSS_BEGIN(bool);
             if (!node)
                 node = root_;
-            return node->traverse(ftor, once);
+            if (!once)
+                return node->traverse(ftor);
+            MSS(!!size_);
+            std::vector<bool> seen(*size_, false);
+            MSS(node->traverse(ftor, &seen));
+            MSS_END();
         }
         template <typename Ftor>
         bool traverse(Ftor &&ftor, bool once = true, Node_ptr node = nullptr)
         {
-            if (once)
-                root_->accumulate(true, [](bool ok, auto &node){node.visited_ = false; return ok;});
+            MSS_BEGIN(bool);
             if (!node)
                 node = root_;
-            return node->traverse(ftor, once);
+            if (!once)
+                return node->traverse(ftor);
+            MSS(!!size_);
+            std::vector<bool> seen(*size_, false);
+            MSS(node->traverse(ftor, &seen));
+            MSS_END();
         }
 
+        //Iterates over topological order, from leaf to root
+        template <typename Ftor>
+        bool leaf_to_root(Ftor && ftor)
+        {
+            MSS_BEGIN(bool);
+            for (const auto &node_ptr: leaf_to_root_.order) { MSS(ftor(*node_ptr)); }
+            MSS_END();
+        }
+        template <typename Ftor>
+        bool leaf_to_root(Ftor && ftor) const
+        {
+            MSS_BEGIN(bool);
+            for (const auto &node_ptr: leaf_to_root_.order) { MSS(ftor(*node_ptr)); }
+            MSS_END();
+        }
+
+        //Iterates over topological order, from leaf to root
+        template <typename Ftor>
+        bool root_to_leaf(Ftor && ftor)
+        {
+            MSS_BEGIN(bool);
+            for (const auto &node_ptr: root_to_leaf_.order) { MSS(ftor(*node_ptr)); }
+            MSS_END();
+        }
+        template <typename Ftor>
+        bool root_to_leaf(Ftor && ftor) const
+        {
+            MSS_BEGIN(bool);
+            for (const auto &node_ptr: root_to_leaf_.order) { MSS(ftor(*node_ptr)); }
+            MSS_END();
+        }
+        
         //Aggregation over the tree, from leaf to root, with xlinks
         //ftor(dst, src) should aggregate a child or xlink (src) into the parent (dst)
         template <typename Ftor>
@@ -80,40 +120,10 @@ namespace gubg { namespace xtree {
             MSS_BEGIN(bool);
 
             MSS(root_->aggregate_tree(ftor));
-
-            //We process the subs according to topological order
-            //to make sure xlinks are not taken into account twice in a situation like:
-            //[a]{
-            //  [b](dep:a/d){
-            //    [c]
-            //  }
-            //  [d](dep:a/b/c)
-            //}
-            //Here, potentially, a/b/c is aggregated twice into a/b
-
-            //Compute the topological order:
-            //* Process each node via accumulate()
-            //* each_out_edge() only iterates over the subs
-            graph::TopologicalOrder<Node_ptr> topo;
-            auto process_topo = [&](bool ok, auto &node)
-            {
-                auto each_out_edge = [](const Node_ptr &n, auto &&ftor){
-                    return n->each_sub([&](auto &s){return ftor(s.shared_from_this());});
-                };
-                AGG(ok, topo.process(node.shared_from_this(), each_out_edge));
-                return ok;
-            };
-            MSS(root_->accumulate(true, process_topo));
-
-            //Aggregate the xlinks according to the topological order
-            for (const auto &node_ptr: topo.order)
-            {
-                auto &node = *node_ptr;
-                auto lambda = [&](auto &to){
-                    return ftor(node, to);
-                };
-                MSS(node.each_sub(lambda));
-            }
+            
+            root_to_leaf([&](auto &node){
+                    return node.each_sub([&](auto &sub){return ftor(node, sub);});
+                    });
 
             MSS_END();
         }
@@ -126,68 +136,52 @@ namespace gubg { namespace xtree {
         template <typename Problem_cb>
         bool process_xlinks(Problem_cb && problem_cb)
         {
-            MSS_BEGIN(bool, "");
+            MSS_BEGIN(bool);
 
-            using Links = std::map<Node_ptr, std::set<Node_ptr>>;
-
-            Links todo;
-            auto lambda = [&](bool ok, auto &node){
+            root_to_leaf_.clear();
+            size_ = 0;
+            auto process_topo = [&](bool ok, auto &node)
+            {
+                node.ix_ = (*size_)++;
                 node.xsubs_.clear();
-                return ok && node.each_out([&](auto &to){todo[node.shared_from_this()].insert(to.shared_from_this()); return true;});
+
+                auto each_out_edge = [](const Node_ptr &n, auto &&ftor){
+                    n->each_child([&](auto &s){return ftor(s.shared_from_this());});
+                    n->each_out([&](auto &s){return ftor(s.shared_from_this());});
+                    return true;
+                };
+                AGG(ok, root_to_leaf_.process(node.shared_from_this(), each_out_edge, true));
+                return ok;
             };
-            MSS(accumulate(true, lambda));
+            MSS(root_->accumulate(true, process_topo));
 
-            Links done;
-            while (!todo.empty())
-            {
-                L(C(todo.size()));
-                Links current;
-                current.swap(todo);
-                for (const auto &p: current)
+            leaf_to_root_ = root_to_leaf_;
+            std::reverse(RANGE(leaf_to_root_.order));
+
+            auto lambda = [&](auto &node) {
+                std::list<Node_ptr> xsubs;
+                node.each_out([&](auto &xout) { xsubs.push_back(xout.shared_from_this()); return true; });
+                auto lambda = [&](auto &child)
                 {
-                    auto &from = p.first;
-                    for (const auto &to: p.second)
-                    {
-                        //Distribute this cross-dependency down to the root
-                        for (auto node = from; !!node; node = node->parent_.lock())
-                        {
-                            MSS(node != to, problem_cb(*node, *from, "cycle detected"););
-                            done[node].insert(to);
+                    xsubs.insert(xsubs.end(), RANGE(child.xsubs_));
+                    return true;
+                };
+                node.each_child(lambda);
+                for (const auto &ptr: xsubs)
+                    if (!node.is_far_child(*ptr))
+                        node.xsubs_.push_back(ptr);
+                return true;
+            };
+            MSS(leaf_to_root(lambda));
 
-                            //All nodes that depend on node need this new dependency as well,
-                            //we will add that to `todo` and process them in the next iteration
-                            auto stage_new_dependency = [&](auto &f)
-                            {
-                                MSS_BEGIN(bool);
-                                auto f_ptr = f.shared_from_this();
-                                auto &t_ptr = to;
-                                if (done[f_ptr].count(t_ptr) == 0)
-                                    todo[f_ptr].insert(t_ptr);
-                                MSS_END();
-                            };
-                            MSS(node->each_in(stage_new_dependency));
-                        }
-                    }
-                }
-            }
-
-            Path path;
-            for (const auto &p: done)
-            {
-                auto &node_ptr = p.first;
-                auto &node = *node_ptr;
-                for (const auto &to: p.second)
-                {
-                    to->path(path);
-                    if (std::find_if(RANGE(path), [&](auto &n){return n == node_ptr;}) == path.end())
-                        node.xsubs_.push_back(to);
-                }
-            }
             MSS_END();
         }
 
     private:
+        std::optional<std::size_t> size_;
         Node_ptr root_;
+        graph::TopologicalOrder<Node_ptr> root_to_leaf_;
+        graph::TopologicalOrder<Node_ptr> leaf_to_root_;
     };
 
 } } 

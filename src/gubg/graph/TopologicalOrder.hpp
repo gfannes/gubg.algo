@@ -31,19 +31,20 @@ namespace gubg { namespace graph {
 
         void clear() {*this = Self{};}
 
+        //If root_to_leaf == true, the resulting order will be from root to leaf
         template <typename EachOutEdge>
-        bool process(const Vertex &n, EachOutEdge &&each_out_edge)
+        bool process(const Vertex &n, EachOutEdge &&each_out_edge, bool root_to_leaf = true)
         {
             MSS_BEGIN(bool);
             auto &mark = marks_[n];
             if (mark == Mark::Unvisited)
-                MSS(visit_(n, mark, each_out_edge));
+                MSS(visit_(n, mark, each_out_edge, root_to_leaf));
             MSS_END();
         }
 
     private:
         template <typename EachOutEdge>
-        bool visit_(const Vertex &n, Mark &mark, EachOutEdge &&each_out_edge)
+        bool visit_(const Vertex &n, Mark &mark, EachOutEdge &&each_out_edge, bool root_to_leaf)
         {
             MSS_BEGIN(bool);
             switch (mark)
@@ -57,11 +58,14 @@ namespace gubg { namespace graph {
                     mark = Mark::Visiting;
                     auto recurse = [&](const Vertex &m){
                         auto &mark = marks_[m];
-                        return visit_(m, mark, each_out_edge);
+                        return visit_(m, mark, each_out_edge, root_to_leaf);
                     };
                     MSS(each_out_edge(n, recurse));
                     mark = Mark::Visited;
-                    order.push_front(n);
+                    if (root_to_leaf)
+                        order.push_front(n);
+                    else
+                        order.push_back(n);
                     break;
             }
             MSS_END();

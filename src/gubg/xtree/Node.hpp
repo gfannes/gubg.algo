@@ -104,6 +104,14 @@ namespace gubg { namespace xtree {
             MSS_END();
         }
 
+        bool is_far_child(const Node &potential_child) const
+        {
+            for (CPtr ptr = potential_child.shared_from_this(); !!ptr; ptr = ptr->parent_.lock())
+                if (ptr.get() == this)
+                    return true;
+            return false;
+        }
+
         //Simple iteration over the tree, without the xlinks
         template <typename Acc, typename Ftor>
         Acc accumulate(Acc acc, Ftor &&ftor) const
@@ -125,24 +133,28 @@ namespace gubg { namespace xtree {
         //Iteration over the tree, with xlinks
         //Second argument to ftor() indicates if we are entering (true) or leaving this node (false)
         template <typename Ftor>
-        bool traverse(Ftor &&ftor, bool once) const
+        bool traverse(Ftor &&ftor, std::vector<bool> *seen = nullptr) const
         {
-            if (once && visited_)
+            MSS_BEGIN(bool);
+
+            if (!!seen && (*seen)[ix_])
                 return true;
 
-            MSS_BEGIN(bool);
             MSS(ftor(*this, true));
             for (const auto &child: childs_)
             {
-                MSS(child->traverse(ftor, once));
+                MSS(child->traverse(ftor, seen));
             }
             for (const auto &wptr: xouts_)
             {
                 auto ptr = wptr.lock();
-                MSS(ptr->traverse(ftor, once));
+                MSS(ptr->traverse(ftor, seen));
             }
             MSS(ftor(*this, false));
-            visited_ = true;
+
+            if (seen)
+                (*seen)[ix_] = true;
+
             MSS_END();
         }
 
@@ -211,7 +223,7 @@ namespace gubg { namespace xtree {
         //This information is computed and distributed over the tree based on the xins_ and xouts_
         std::list<WPtr> xsubs_;
 
-        mutable bool visited_ = false;
+        std::size_t ix_ = -1;
     };
 
 } } 
