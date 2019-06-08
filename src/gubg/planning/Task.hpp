@@ -190,9 +190,9 @@ namespace gubg { namespace planning {
                         if (p.empty())
                             return;
                         auto &parent = *p.back();
-                        if (!parent.start.isValid() || n.start < parent.start)
+                        if (!parent.start.is_valid() || n.start < parent.start)
                             parent.start = n.start;
-                        if (!parent.stop.isValid() || parent.stop < n.stop)
+                        if (!parent.stop.is_valid() || parent.stop < n.stop)
                             parent.stop = n.stop;
                     }
         };
@@ -214,8 +214,8 @@ namespace gubg { namespace planning {
                         const bool is_leaf = n.childs.empty();
                         if (is_leaf)
                         {
-                            all_leafs_are_planned && (all_leafs_are_planned = n.stop.isValid());
-                            if (!stop.isValid() || stop < n.stop)
+                            all_leafs_are_planned && (all_leafs_are_planned = n.stop.is_valid());
+                            if (!stop.is_valid() || stop < n.stop)
                                 stop = n.stop;
                         }
                     }
@@ -368,7 +368,7 @@ namespace gubg { namespace planning {
                 return tpd;
             }
 
-            bool isPlanned() const {return start.isValid() && stop.isValid();}
+            bool isPlanned() const {return start.is_valid() && stop.is_valid();}
 
             void stream(std::ostream &os) const
             {

@@ -57,10 +57,10 @@ namespace gubg { namespace planning {
                 for (auto &p: dayPlanningsPerWorker_)
                 {
                     const Day ld = p.second.begin()->first;
-                    if (!d.isValid() || ld < d)
+                    if (!d.is_valid() || ld < d)
                         d = ld;
                 }
-                if (!d.isValid())
+                if (!d.is_valid())
                     return false;
                 day = d;
                 return true;
@@ -71,10 +71,10 @@ namespace gubg { namespace planning {
                 for (auto &p: dayPlanningsPerWorker_)
                 {
                     const Day ld = p.second.rbegin()->first;
-                    if (!d.isValid() || d < ld)
+                    if (!d.is_valid() || d < ld)
                         d = ld;
                 }
-                if (!d.isValid())
+                if (!d.is_valid())
                     return false;
                 day = d;
                 return true;
@@ -164,7 +164,7 @@ namespace gubg { namespace planning {
                     MSS(mss::on_fail(dayPlanning != 0, ReturnCode::NotEnoughSweatAvailable));
                     auto taskPart = dayPlanning->addTask(task, sweat);
                     MSS(!!taskPart);
-                    if (!task.start.isValid())
+                    if (!task.start.is_valid())
                         task.start = dayPlanning->day;
                     task.stop = dayPlanning->day;
                     if (!eta)
@@ -388,7 +388,7 @@ namespace gubg { namespace planning {
             }
             void streamText_(std::ostream &os) const
             {
-                os << "# Planning on " << today() << std::endl << std::endl;
+                os << "# Planning on " << Day::today() << std::endl << std::endl;
                 for (const auto &p: dayPlanningsPerWorker_)
                 {
                     os << p.first << std::endl;
@@ -422,7 +422,7 @@ namespace gubg { namespace planning {
                 auto body = html.tag("body");
                 {
                     auto h1 = body.tag("h1");
-                    h1 << "Planning on " << today();
+                    h1 << "Planning on " << Day::today();
                 }
                 auto table = body.tag("table");
                 table.attr("border", 0).attr("cellpadding", 0).attr("cellspacing", 0);
@@ -433,9 +433,9 @@ namespace gubg { namespace planning {
                     const auto &dayPlannings = p.second;
                     for (const auto &p2: dayPlannings)
                     {
-                        if (!globalFirst.isValid() || ((p2.second.sweat - p2.second.availableSweat()) > eps_() && p2.second.day < globalFirst))
+                        if (!globalFirst.is_valid() || ((p2.second.sweat - p2.second.availableSweat()) > eps_() && p2.second.day < globalFirst))
                             globalFirst = p2.second.day;
-                        if (!globalLast.isValid() || ((p2.second.sweat - p2.second.availableSweat()) > eps_() && p2.second.day > globalLast))
+                        if (!globalLast.is_valid() || ((p2.second.sweat - p2.second.availableSweat()) > eps_() && p2.second.day > globalLast))
                             globalLast = p2.second.day;
                     }
                 }
@@ -459,7 +459,7 @@ namespace gubg { namespace planning {
                         bool toggle = true;
                         for (auto d = start; d <= stop; ++d)
                         {
-                            if (!firstOfMonth.isValid())
+                            if (!firstOfMonth.is_valid())
                             {
                                 firstOfMonth = start;
                                 nr = 1;

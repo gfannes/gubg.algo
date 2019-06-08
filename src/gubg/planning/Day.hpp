@@ -1,7 +1,7 @@
 #ifndef HEADER_gubg_planning_Day_hpp_ALREADY_INCLUDED
 #define HEADER_gubg_planning_Day_hpp_ALREADY_INCLUDED
 
-#include "gubg/Strange.hpp"
+#include <gubg/Strange.hpp>
 #include <ostream>
 #include <sstream>
 #include <iomanip>
@@ -15,21 +15,37 @@ namespace gubg { namespace planning {
     class Day
     {
         public:
-            Day():y_(0), m_(0), d_(0){}
-            Day(int y, int m, int d):y_(y), m_(m), d_(d){}
-            Day(const std::string &str):y_(0), m_(0), d_(0)
-        {
-            Strange strange(str);
-            int y, m, d;
-            if (strange.pop_decimal(y) && strange.pop_if('-') && strange.pop_decimal(m) && strange.pop_if('-') && strange.pop_decimal(d))
+            static Day today()
             {
-                y_ = y;
-                m_ = m;
-                d_ = d;
+                auto t = std::time(0);
+                auto gt = std::gmtime(&t);
+                return Day(gt->tm_year+1900, gt->tm_mon+1, gt->tm_mday);
             }
-        }
 
-            bool isValid() const {return y_ != 0 || m_ != 0 || d_ != 0;}
+            Day(){}
+            Day(int y, int m, int d):y_(y), m_(m), d_(d){}
+            Day(const std::string &str)
+            {
+                Strange strange(str);
+                Strange tmp;
+                int y;
+                if (strange.pop_count(tmp, 4) && tmp.pop_decimal(y))
+                {
+                    strange.pop_if('-');
+                    int m;
+                    if (strange.pop_count(tmp, 2) && tmp.pop_decimal(m))
+                    {
+                        strange.pop_if('-');
+                        int d = 1;
+                        strange.pop_count(tmp, 2) && tmp.pop_decimal(d);
+                        y_ = y;
+                        m_ = m;
+                        d_ = d;
+                    }
+                }
+            }
+
+            bool is_valid() const {return y_ != 0 || m_ != 0 || d_ != 0;}
 
             int day() const {return d_;}
             int month() const {return m_;}
@@ -79,12 +95,13 @@ namespace gubg { namespace planning {
                 return *this;
             }
 
-            void stream(std::ostream &os) const
+            std::string str() const
             {
                 std::ostringstream oss;
                 oss << std::setw(4) << std::setfill('0') << y_ << "-" << std::setw(2) << std::setfill('0') << m_ << "-" << std::setw(2) << std::setfill('0') << d_;
-                os << oss.str();
+                return oss.str();
             }
+            void stream(std::ostream &os) const { os << str(); }
 
             bool operator<(const Day &rhs) const
             {
@@ -117,17 +134,10 @@ namespace gubg { namespace planning {
             bool operator>=(const Day &rhs) const {return !operator<(rhs);}
 
         private:
-            int y_;
-            int m_;
-            int d_;
+            int y_ = 0;
+            int m_ = 0;
+            int d_ = 0;
     };
-
-    inline Day today()
-    {
-        auto t = std::time(0);
-        auto gt = std::gmtime(&t);
-        return Day(gt->tm_year+1900, gt->tm_mon+1, gt->tm_mday);
-    }
     typedef std::vector<Day> Days;
     //Returns a vector of nr days starting from today, only including mon ... fri
     inline Days workDays(size_t nr)
