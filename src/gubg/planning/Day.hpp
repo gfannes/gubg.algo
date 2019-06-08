@@ -139,13 +139,14 @@ namespace gubg { namespace planning {
             int d_ = 0;
     };
     typedef std::vector<Day> Days;
+
     //Returns a vector of nr days starting from today, only including mon ... fri
-    inline Days workDays(size_t nr)
+    inline Days work_days(size_t nr)
     {
         Days days;
+        Day d = Day::today();
         auto t = std::time(0);
         auto gt = std::gmtime(&t);
-        Day d(gt->tm_year+1900, gt->tm_mon+1, gt->tm_mday);
         int wday = (gt->tm_wday+6)%7;//wday == 0 => monday
         while (days.size() < nr)
         {
@@ -157,8 +158,9 @@ namespace gubg { namespace planning {
         }
         return days;
     }
+
     //to is also included
-    inline Days dayRange(Day from, Day to)
+    inline Days day_range(Day from, Day to)
     {
         Days days;
         while (from <= to)

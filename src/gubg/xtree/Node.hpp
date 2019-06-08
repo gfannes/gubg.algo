@@ -157,6 +157,31 @@ namespace gubg { namespace xtree {
 
             MSS_END();
         }
+        template <typename Ftor>
+        bool traverse(Ftor &&ftor, std::vector<bool> *seen = nullptr)
+        {
+            MSS_BEGIN(bool);
+
+            if (!!seen && (*seen)[ix_])
+                return true;
+
+            MSS(ftor(*this, true));
+            for (const auto &child: childs_)
+            {
+                MSS(child->traverse(ftor, seen));
+            }
+            for (const auto &wptr: xouts_)
+            {
+                auto ptr = wptr.lock();
+                MSS(ptr->traverse(ftor, seen));
+            }
+            MSS(ftor(*this, false));
+
+            if (seen)
+                (*seen)[ix_] = true;
+
+            MSS_END();
+        }
 
         //Aggregation over the tree, from leaf to root, without xlinks
         //ftor(dst, src) should aggregate a child (src) into the parent (dst)

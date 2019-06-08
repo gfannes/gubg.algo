@@ -37,7 +37,7 @@ namespace gubg { namespace xtree {
 
         Node &root() {return *root_;}
         Node_ptr &root_ptr() {return root_;}
-        Node_cptr root_ptr() const {return root_;}
+        Node_cptr root_cptr() const {return root_;}
 
         //Simple iteration over the tree, without the xlinks
         template <typename Acc, typename Ftor>
