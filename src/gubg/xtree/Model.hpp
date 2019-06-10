@@ -142,15 +142,22 @@ namespace gubg { namespace xtree {
             size_ = 0;
             auto process_topo = [&](bool ok, auto &node)
             {
-                node.ix_ = (*size_)++;
-                node.xsubs_.clear();
+                if (ok)
+                {
+                    node.ix_ = (*size_)++;
+                    node.xsubs_.clear();
 
-                auto each_out_edge = [](const Node_ptr &n, auto &&ftor){
-                    n->each_child([&](auto &s){return ftor(s.shared_from_this());});
-                    n->each_out([&](auto &s){return ftor(s.shared_from_this());});
-                    return true;
-                };
-                AGG(ok, root_to_leaf_.process(node.shared_from_this(), each_out_edge, true));
+                    auto each_out_edge = [](const Node_ptr &n, auto &&ftor){
+                        return
+                        n->each_child([&](auto &s){return ftor(s.shared_from_this());}) &&
+                        n->each_out([&](auto &s){return ftor(s.shared_from_this());});
+                    };
+                    if (!root_to_leaf_.process(node.shared_from_this(), each_out_edge, true))
+                    {
+                        problem_cb(root_to_leaf_.cycle);
+                        return false;
+                    }
+                }
                 return ok;
             };
             MSS(root_->accumulate(true, process_topo));

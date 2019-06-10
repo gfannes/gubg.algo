@@ -3,6 +3,7 @@
 
 #include "gubg/mss.hpp"
 #include <list>
+#include <vector>
 #include <map>
 #include <ostream>
 
@@ -28,6 +29,7 @@ namespace gubg { namespace graph {
 
     public:
         std::list<Vertex> order;
+        std::vector<Vertex> cycle;
 
         void clear() {*this = Self{};}
 
@@ -36,9 +38,11 @@ namespace gubg { namespace graph {
         bool process(const Vertex &n, EachOutEdge &&each_out_edge, bool root_to_leaf = true)
         {
             MSS_BEGIN(bool);
+            cycle.resize(0);
             auto &mark = marks_[n];
             if (mark == Mark::Unvisited)
                 MSS(visit_(n, mark, each_out_edge, root_to_leaf));
+            cycle.resize(0);
             MSS_END();
         }
 
@@ -47,6 +51,7 @@ namespace gubg { namespace graph {
         bool visit_(const Vertex &n, Mark &mark, EachOutEdge &&each_out_edge, bool root_to_leaf)
         {
             MSS_BEGIN(bool);
+            cycle.push_back(n);
             switch (mark)
             {
                 case Mark::Visited:
@@ -68,6 +73,7 @@ namespace gubg { namespace graph {
                         order.push_back(n);
                     break;
             }
+            cycle.pop_back();
             MSS_END();
         }
 
