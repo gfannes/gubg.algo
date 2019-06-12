@@ -133,54 +133,28 @@ namespace gubg { namespace xtree {
         //Iteration over the tree, with xlinks
         //Second argument to ftor() indicates if we are entering (true) or leaving this node (false)
         template <typename Ftor>
-        bool traverse(Ftor &&ftor, std::vector<bool> *seen = nullptr) const
+        void traverse(Ftor &&ftor, bool as_child) const
         {
-            MSS_BEGIN(bool);
-
-            if (!!seen && (*seen)[ix_])
-                return true;
-
-            MSS(ftor(*this, true));
-            for (const auto &child: childs_)
+            if (ftor(*this, true, as_child))
             {
-                MSS(child->traverse(ftor, seen));
+                for (const auto &child: childs_)
+                    child->traverse(ftor, true);
+                for (const auto &wptr: xouts_)
+                    wptr.lock()->traverse(ftor, false);
             }
-            for (const auto &wptr: xouts_)
-            {
-                auto ptr = wptr.lock();
-                MSS(ptr->traverse(ftor, seen));
-            }
-            MSS(ftor(*this, false));
-
-            if (seen)
-                (*seen)[ix_] = true;
-
-            MSS_END();
+            ftor(*this, false, as_child);
         }
         template <typename Ftor>
-        bool traverse(Ftor &&ftor, std::vector<bool> *seen = nullptr)
+        void traverse(Ftor &&ftor, bool as_child)
         {
-            MSS_BEGIN(bool);
-
-            if (!!seen && (*seen)[ix_])
-                return true;
-
-            MSS(ftor(*this, true));
-            for (const auto &child: childs_)
+            if (ftor(*this, true, as_child))
             {
-                MSS(child->traverse(ftor, seen));
+                for (const auto &child: childs_)
+                    child->traverse(ftor, true);
+                for (const auto &wptr: xouts_)
+                    wptr.lock()->traverse(ftor, false);
             }
-            for (const auto &wptr: xouts_)
-            {
-                auto ptr = wptr.lock();
-                MSS(ptr->traverse(ftor, seen));
-            }
-            MSS(ftor(*this, false));
-
-            if (seen)
-                (*seen)[ix_] = true;
-
-            MSS_END();
+            ftor(*this, false, as_child);
         }
 
         //Aggregation over the tree, from leaf to root, without xlinks

@@ -54,30 +54,19 @@ namespace gubg { namespace xtree {
         //Iteration over the tree, with xlinks
         //Second argument to ftor() indicates if we are entering (true) or leaving this node (false)
         template <typename Ftor>
-        bool traverse(Ftor &&ftor, bool once = true, Node_cptr node = nullptr) const
+        void traverse(Ftor &&ftor, Node_cptr node = nullptr) const
         {
-            MSS_BEGIN(bool);
             if (!node)
                 node = root_;
-            if (!once)
-                return node->traverse(ftor);
-            MSS(!!size_);
-            std::vector<bool> seen(*size_, false);
-            MSS(node->traverse(ftor, &seen));
-            MSS_END();
+            node->traverse(ftor, true);
         }
+
         template <typename Ftor>
-        bool traverse(Ftor &&ftor, bool once = true, Node_ptr node = nullptr)
+        void traverse(Ftor &&ftor, Node_ptr node = nullptr)
         {
-            MSS_BEGIN(bool);
             if (!node)
                 node = root_;
-            if (!once)
-                return node->traverse(ftor);
-            MSS(!!size_);
-            std::vector<bool> seen(*size_, false);
-            MSS(node->traverse(ftor, &seen));
-            MSS_END();
+            node->traverse(ftor, true);
         }
 
         //Iterates over topological order, from leaf to root
