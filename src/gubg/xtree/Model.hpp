@@ -39,7 +39,7 @@ namespace gubg { namespace xtree {
         Node_ptr &root_ptr() {return root_;}
         Node_cptr root_cptr() const {return root_;}
 
-        //Simple iteration over the tree, without the xlinks
+        //Simple depth-first iteration over the tree, without the xlinks
         template <typename Acc, typename Ftor>
         Acc accumulate(Acc acc, Ftor &&ftor) const
         {
@@ -53,6 +53,8 @@ namespace gubg { namespace xtree {
 
         //Iteration over the tree, with xlinks
         //Second argument to ftor() indicates if we are entering (true) or leaving this node (false)
+        //Third argument to ftor() indicates if we are visiting the node due to tree-based relationship (true) or x-based relationship (false)
+        //Return value of ftor() controls if node should be visited recursively
         template <typename Ftor>
         void traverse(Ftor &&ftor, Node_cptr node = nullptr) const
         {

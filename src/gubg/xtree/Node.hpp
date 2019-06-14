@@ -132,6 +132,8 @@ namespace gubg { namespace xtree {
 
         //Iteration over the tree, with xlinks
         //Second argument to ftor() indicates if we are entering (true) or leaving this node (false)
+        //Third argument to ftor() indicates if we are visiting the node due to tree-based relationship (true) or x-based relationship (false)
+        //Return value of ftor() controls if node should be visited recursively
         template <typename Ftor>
         void traverse(Ftor &&ftor, bool as_child) const
         {
