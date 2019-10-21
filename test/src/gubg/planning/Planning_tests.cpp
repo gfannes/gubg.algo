@@ -9,9 +9,9 @@ TEST_CASE("planning::Planning", "[ut][planning]")
 	Planning planning;
 	planning.addWorker("gfa", 0.8);
 	planning.addWorker("wba", 0.5);
-	for (auto d: workDays(10))
+	for (auto d: work_days(10))
 		planning.addDay(d);
-	for (auto d: dayRange(Day(2013, 7, 4), Day(2013, 7, 20)))
+	for (auto d: day_range(Day(2013, 7, 4), Day(2013, 7, 20)))
 		planning.absence("gfa", d);
 	cout << planning;
 
