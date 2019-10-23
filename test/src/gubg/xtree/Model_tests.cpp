@@ -60,7 +60,11 @@ TEST_CASE("gubg::xtree xlinks test", "[ut][xtree][xlinks]")
 
     f.add_link(b);
 
-    REQUIRE(xtree.process_xlinks([](const auto &node, const auto &from, const auto &msg){std::cout << "Problem detected for node " << node.name << ": " << msg << " when processing " << from.name << std::endl;}));
+    REQUIRE(xtree.process_xlinks([](const auto &cycle){
+                std::cout << "Problem detected:" << std::endl;
+                for (auto node_ptr: cycle)
+                std::cout << "  " << node_ptr->name << std::endl;
+                }));
 
     xtree.accumulate(true, print_node);
 }
@@ -83,10 +87,14 @@ TEST_CASE("gubg::xtree traverse test", "[ut][xtree][traverse]")
     integration.add_link(lib);
     core.add_link(wfc);
 
-    REQUIRE(xtree.process_xlinks([](const auto &node, const auto &from, const auto &msg){std::cout << "Problem detected for node " << node.name << ": " << msg << " when processing " << from.name << std::endl;}));
+    REQUIRE(xtree.process_xlinks([](const auto &cycle){
+                std::cout << "Problem detected:" << std::endl;
+                for (auto node_ptr: cycle)
+                std::cout << "  " << node_ptr->name << std::endl;
+                }));
 
     unsigned int ix = 0;
-    auto visit = [&](const auto &node, bool enter){
+    auto visit = [&](const auto &node, bool enter, bool as_child){
         if (!enter)
             std::cout << ix++ << ": " << node.name << std::endl;
         return true;
