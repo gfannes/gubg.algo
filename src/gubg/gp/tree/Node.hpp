@@ -1,12 +1,12 @@
-#ifndef HEADER_gubg_gp_Tree_hpp_ALREADY_INCLUDED
-#define HEADER_gubg_gp_Tree_hpp_ALREADY_INCLUDED
+#ifndef HEADER_gubg_gp_tree_Node_hpp_ALREADY_INCLUDED
+#define HEADER_gubg_gp_tree_Node_hpp_ALREADY_INCLUDED
 
 #include <gubg/Range.hpp>
 #include <gubg/mss.hpp>
 #include <vector>
 #include <memory>
 
-namespace gubg { namespace gp { 
+namespace gubg { namespace gp { namespace tree { 
 
     template <typename T>
     class Node
@@ -16,6 +16,7 @@ namespace gubg { namespace gp {
         using Ptr = std::shared_ptr<Self>;
         using Childs = Range<Ptr*>;
 
+        virtual Ptr clone() const = 0;
         virtual Childs childs() = 0;
         virtual bool compute(T &) const = 0;
 
@@ -26,14 +27,17 @@ namespace gubg { namespace gp {
     class Function: public Node<T>
     {
     public:
+        using Self = Function<T, Operation>;
         using Base = Node<T>;
         using Childs = typename Base::Childs;
+        using Ptr = typename Base::Ptr;
 
-        Function(Operation &operation): operation_(operation)
+        Function(const Operation &operation): operation_(operation)
         {
             childs_.resize(operation_.size());
         }
 
+        Ptr clone() const { return Ptr{new Self{operation_}}; }
         Childs childs() override
         {
             auto ptr = childs_.data();
@@ -56,13 +60,13 @@ namespace gubg { namespace gp {
         }
 
     private:
-        Operation &operation_;
+        Operation operation_;
         std::vector<typename Base::Ptr> childs_;
         mutable std::vector<T> tmp_values_;
     };
 
     template <typename T, typename Operation>
-    typename Node<T>::Ptr create_function(Operation &operation)
+    typename Node<T>::Ptr create_function(const Operation &operation)
     {
         typename Node<T>::Ptr ptr{new Function<T, Operation>{operation}};
         return ptr;
@@ -72,25 +76,28 @@ namespace gubg { namespace gp {
     class Terminal: public Node<T>
     {
     public:
+        using Self = Terminal<T, Value>;
         using Base = Node<T>;
         using Childs = typename Base::Childs;
+        using Ptr = typename Base::Ptr;
 
-        Terminal(Value &value): value_(value) {}
+        Terminal(const Value &value): value_(value) {}
 
+        Ptr clone() const { return Ptr{new Self{value_}}; }
         Childs childs() override { return Childs{nullptr, nullptr}; }
         bool compute(T &v) const override { return value_.compute(v); }
 
     private:
-        Value &value_;
+        Value value_;
     };
 
     template <typename T, typename Value>
-    typename Node<T>::Ptr create_terminal(Value &value)
+    typename Node<T>::Ptr create_terminal(const Value &value)
     {
         typename Node<T>::Ptr ptr{new Terminal<T, Value>{value}};
         return ptr;
     }
 
-} } 
+} } } 
 
 #endif
