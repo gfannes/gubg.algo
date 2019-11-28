@@ -6,6 +6,7 @@ using namespace gubg::gp::tree;
 TEST_CASE("gp::tree::Node tests", "[ut][gp][tree][Node]")
 {
     using T = test::T;
+    using Node = Node<T>;
     using X = test::X;
     using Plus = test::Plus;
 
@@ -20,7 +21,7 @@ TEST_CASE("gp::tree::Node tests", "[ut][gp][tree][Node]")
     SECTION("x == 0") { x.ptr.reset(new double{0}); }
     SECTION("x == 42") { x.ptr.reset(new double{42}); }
 
-    auto x_t = create_terminal<T>(x);
+    auto x_t = create_terminal<Node>(x);
 
     T v = 1;
     const auto compute_ok = x_t->compute(v);
@@ -30,7 +31,7 @@ TEST_CASE("gp::tree::Node tests", "[ut][gp][tree][Node]")
         REQUIRE(v == *x.ptr);
 
         Plus plus;
-        auto plus_f = create_function<T>(plus);
+        auto plus_f = create_function<Node>(plus);
         auto childs = plus_f->childs();
         childs[0] = x_t;
         childs[1] = x_t;

@@ -9,16 +9,25 @@
 
 namespace gubg { namespace gp { namespace tree { 
 
+    //Indicator used during depth-first search to communicate the node type and iteration status
     enum class DFS {Open, Close, Terminal};
 
-    template <typename T>
+    //Node<T, Base> is an interface that allows evaluation and depth-first search iteration.
+    //Terminal<Node, Value> and Function<Node, Operation> are concrete instances that implement the Node<> interface,
+    //and handles storage of childs when necessary. The Value and Operation classes represent the details of the Terminal
+    //or Function. Value and Operation are stored as members in resp. Terminal and Function.
+    //During depth-first search, a const Base * is received, as such is it important that both Value and Operation can
+    //be cast to const Base *.
+    template <typename T_, typename Base_ = void>
     class Node
     {
     public:
-        using Self = Node<T>;
+        using T = T_;
+        using Base = Base_;
+        using Self = Node<T, Base>;
         using Ptr = std::shared_ptr<Self>;
         using Childs = Range<Ptr*>;
-        using Functor = std::function<void(const Self *, DFS)>;
+        using Functor = std::function<void(const Base *, DFS)>;
 
         virtual Ptr clone() const = 0;
         virtual Childs childs() = 0;
@@ -28,15 +37,16 @@ namespace gubg { namespace gp { namespace tree {
     private:
     };
 
-    template <typename T, typename Operation>
-    class Function: public Node<T>
+    template <typename Node_, typename Operation>
+    class Function: public Node_
     {
     public:
-        using Self = Function<T, Operation>;
-        using Base = Node<T>;
-        using Childs = typename Base::Childs;
-        using Ptr = typename Base::Ptr;
-        using Functor = typename Base::Functor;
+        using Node = Node_;
+        using Self = Function<Node, Operation>;
+        using T = typename Node::T;
+        using Childs = typename Node::Childs;
+        using Ptr = typename Node::Ptr;
+        using Functor = typename Node::Functor;
 
         Function(const Operation &operation): operation_(operation)
         {
@@ -66,50 +76,51 @@ namespace gubg { namespace gp { namespace tree {
         }
         void dfs(Functor &ftor) const override
         {
-            ftor(this, DFS::Open);
+            ftor(&operation_, DFS::Open);
             for (const auto &child: childs_)
                 child->dfs(ftor);
-            ftor(this, DFS::Close);
+            ftor(&operation_, DFS::Close);
         }
 
     private:
         Operation operation_;
-        std::vector<typename Base::Ptr> childs_;
+        std::vector<typename Node::Ptr> childs_;
         mutable std::vector<T> tmp_values_;
     };
 
-    template <typename T, typename Operation>
-    typename Node<T>::Ptr create_function(const Operation &operation)
+    template <typename Node, typename Operation>
+    typename Node::Ptr create_function(const Operation &operation)
     {
-        typename Node<T>::Ptr ptr{new Function<T, Operation>{operation}};
+        typename Node::Ptr ptr{new Function<Node, Operation>{operation}};
         return ptr;
     }
 
-    template <typename T, typename Value>
-    class Terminal: public Node<T>
+    template <typename Node_, typename Value>
+    class Terminal: public Node_
     {
     public:
-        using Self = Terminal<T, Value>;
-        using Base = Node<T>;
-        using Childs = typename Base::Childs;
-        using Ptr = typename Base::Ptr;
-        using Functor = typename Base::Functor;
+        using Node = Node_;
+        using Self = Terminal<Node, Value>;
+        using T = typename Node::T;
+        using Childs = typename Node::Childs;
+        using Ptr = typename Node::Ptr;
+        using Functor = typename Node::Functor;
 
         Terminal(const Value &value): value_(value) {}
 
         Ptr clone() const { return Ptr{new Self{value_}}; }
         Childs childs() override { return Childs{nullptr, nullptr}; }
         bool compute(T &v) const override { return value_.compute(v); }
-        void dfs(Functor &ftor) const override {ftor(this, DFS::Terminal);}
+        void dfs(Functor &ftor) const override {ftor(&value_, DFS::Terminal);}
 
     private:
         Value value_;
     };
 
-    template <typename T, typename Value>
-    typename Node<T>::Ptr create_terminal(const Value &value)
+    template <typename Node, typename Value>
+    typename Node::Ptr create_terminal(const Value &value)
     {
-        typename Node<T>::Ptr ptr{new Terminal<T, Value>{value}};
+        typename Node::Ptr ptr{new Terminal<Node, Value>{value}};
         return ptr;
     }
 

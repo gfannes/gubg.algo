@@ -8,11 +8,12 @@
 
 namespace gubg { namespace gp { namespace tree { 
 
-    template <typename T>
+    template <typename Node>
     class Grow
     {
     public:
-        using Ptr = typename Node<T>::Ptr;
+        using T = typename Node::T;
+        using Ptr = typename Node::Ptr;
 
         bool set_probs(double terminal, double function)
         {
@@ -80,7 +81,7 @@ namespace gubg { namespace gp { namespace tree {
             MSS_BEGIN(bool, "");
             const auto size = nodes.size();
             MSS(size > 0);
-            std::uniform_int_distribution<> uniform{0, size-1};
+            std::uniform_int_distribution<unsigned int> uniform{0u, static_cast<unsigned int>(size-1)};
             const auto ix = uniform(rng_);
             auto &selected = nodes[ix];
             MSS(!!selected);

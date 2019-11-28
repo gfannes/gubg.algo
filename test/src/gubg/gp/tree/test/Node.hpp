@@ -8,11 +8,19 @@ namespace gubg { namespace gp { namespace tree { namespace test {
 
     using T = double;
 
-    struct X
+    struct Base
+    {
+        virtual std::string hr() const = 0;
+    };
+
+    struct X: Base
     {
         std::shared_ptr<T> ptr;
 
         X(): ptr(new double{0}) {}
+
+        //Base API
+        std::string hr() const override {return "X";}
 
         void set(T v)
         {
@@ -28,8 +36,11 @@ namespace gubg { namespace gp { namespace tree { namespace test {
         }
     };
 
-    struct Plus
+    struct Plus: Base
     {
+        //Base API
+        std::string hr() const override {return "Plus";}
+
         std::size_t size() const { return 2; }
         bool compute(T &v, const T *begin, const T *end) const
         {
