@@ -5,8 +5,11 @@
 #include <gubg/mss.hpp>
 #include <vector>
 #include <memory>
+#include <functional>
 
 namespace gubg { namespace gp { namespace tree { 
+
+    enum class DFS {Open, Close, Terminal};
 
     template <typename T>
     class Node
@@ -15,10 +18,12 @@ namespace gubg { namespace gp { namespace tree {
         using Self = Node<T>;
         using Ptr = std::shared_ptr<Self>;
         using Childs = Range<Ptr*>;
+        using Functor = std::function<void(const Self *, DFS)>;
 
         virtual Ptr clone() const = 0;
         virtual Childs childs() = 0;
         virtual bool compute(T &) const = 0;
+        virtual void dfs(Functor &ftor) const = 0;
 
     private:
     };
@@ -31,6 +36,7 @@ namespace gubg { namespace gp { namespace tree {
         using Base = Node<T>;
         using Childs = typename Base::Childs;
         using Ptr = typename Base::Ptr;
+        using Functor = typename Base::Functor;
 
         Function(const Operation &operation): operation_(operation)
         {
@@ -58,6 +64,13 @@ namespace gubg { namespace gp { namespace tree {
             MSS(operation_.compute(v, ptr, ptr+tmp_values_.size()));
             MSS_END();
         }
+        void dfs(Functor &ftor) const override
+        {
+            ftor(this, DFS::Open);
+            for (const auto &child: childs_)
+                child->dfs(ftor);
+            ftor(this, DFS::Close);
+        }
 
     private:
         Operation operation_;
@@ -80,12 +93,14 @@ namespace gubg { namespace gp { namespace tree {
         using Base = Node<T>;
         using Childs = typename Base::Childs;
         using Ptr = typename Base::Ptr;
+        using Functor = typename Base::Functor;
 
         Terminal(const Value &value): value_(value) {}
 
         Ptr clone() const { return Ptr{new Self{value_}}; }
         Childs childs() override { return Childs{nullptr, nullptr}; }
         bool compute(T &v) const override { return value_.compute(v); }
+        void dfs(Functor &ftor) const override {ftor(this, DFS::Terminal);}
 
     private:
         Value value_;
