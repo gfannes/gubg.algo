@@ -5,6 +5,7 @@
 
 #include <gubg/biquad/Coefficients.hpp>
 #include <gubg/mss.hpp>
+#include <gubg/math/constants.hpp>
 #include <cmath>
 
 namespace gubg { namespace biquad { 
@@ -25,6 +26,8 @@ namespace gubg { namespace biquad {
         Peak,
         LowShelf,
         HighShelf,
+
+        Nr_,
     };
 
     template <typename T>

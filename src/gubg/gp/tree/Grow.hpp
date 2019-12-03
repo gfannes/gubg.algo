@@ -30,19 +30,19 @@ namespace gubg { namespace gp { namespace tree {
             MSS_END();
         }
 
-        template <typename Terminals, typename Functions>
-        bool operator()(Ptr &root, const Terminals &terminals, const Functions &functions)
+        template <typename TerminalFactory, typename FunctionFactory>
+        bool operator()(Ptr &root, TerminalFactory &&terminal_factory, FunctionFactory &&function_factory)
         {
             MSS_BEGIN(bool);
             MSS(!!prob_terminal_);
             MSS(!!max_depth_);
-            MSS(grow_(root, terminals, functions, 0));
+            MSS(grow_(root, terminal_factory, function_factory, 0));
             MSS_END();
         }
 
     private:
-        template <typename Terminals, typename Functions>
-        bool grow_(Ptr &node, const Terminals &terminals, const Functions &functions, unsigned int depth)
+        template <typename TerminalFactory, typename FunctionFactory>
+        bool grow_(Ptr &node, TerminalFactory &&terminal_factory, FunctionFactory &&function_factory, unsigned int depth)
         {
             MSS_BEGIN(bool, "");
             if (depth < *max_depth_)
@@ -50,21 +50,27 @@ namespace gubg { namespace gp { namespace tree {
                 //We can still choose between terminals or functions
                 if (choose_(*prob_terminal_))
                 {
-                    MSS(select_(node, terminals));
+                    MSS(terminal_factory(node));
+                    MSS(!!node);
+                    L("Terminal " << C(node.get()));
                 }
                 else
                 {
-                    MSS(select_(node, functions));
+                    MSS(function_factory(node));
+                    MSS(!!node);
+                    L("Function " << C(node.get()));
                     for (auto &child: node->childs())
                     {
-                        MSS(grow_(child, terminals, functions, depth+1));
+                        MSS(grow_(child, terminal_factory, function_factory, depth+1));
                     }
                 }
             }
             else
             {
                 //Max depth is reached: only terminals can be selected
-                MSS(select_(node, terminals));
+                MSS(terminal_factory(node));
+                MSS(!!node);
+                L("Terminal " << C(node.get()));
             }
             MSS_END();
         }
@@ -73,20 +79,6 @@ namespace gubg { namespace gp { namespace tree {
         {
             std::uniform_real_distribution<> uniform;
             return uniform(rng_) < prob_true;
-        }
-
-        template <typename Nodes>
-        bool select_(Ptr &node, const Nodes &nodes)
-        {
-            MSS_BEGIN(bool, "");
-            const auto size = nodes.size();
-            MSS(size > 0);
-            std::uniform_int_distribution<unsigned int> uniform{0u, static_cast<unsigned int>(size-1)};
-            const auto ix = uniform(rng_);
-            auto &selected = nodes[ix];
-            MSS(!!selected);
-            node = selected->clone();
-            MSS_END();
         }
 
         std::optional<double> prob_terminal_;

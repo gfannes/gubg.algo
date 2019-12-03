@@ -29,9 +29,10 @@ namespace gubg { namespace gp { namespace tree {
         using Childs = Range<Ptr*>;
         using Functor = std::function<void(const Base *, DFS)>;
 
+        virtual ~Node(){}
         virtual Ptr clone() const = 0;
         virtual Childs childs() = 0;
-        virtual bool compute(T &) const = 0;
+        virtual bool compute(T &) = 0;
         virtual void dfs(Functor &ftor) const = 0;
 
     private:
@@ -59,20 +60,9 @@ namespace gubg { namespace gp { namespace tree {
             auto ptr = childs_.data();
             return Childs{ptr, ptr+childs_.size()};
         }
-        bool compute(T &v) const override
+        bool compute(T &v) override
         {
-            MSS_BEGIN(bool);
-            tmp_values_.resize(childs_.size());
-            auto value_it = tmp_values_.begin();
-            for (const auto &child: childs_)
-            {
-                MSS(!!child);
-                MSS(child->compute(*value_it));
-                ++value_it;
-            }
-            auto ptr = tmp_values_.data();
-            MSS(operation_.compute(v, ptr, ptr+tmp_values_.size()));
-            MSS_END();
+            return operation_.compute(v, childs_);
         }
         void dfs(Functor &ftor) const override
         {
@@ -85,7 +75,6 @@ namespace gubg { namespace gp { namespace tree {
     private:
         Operation operation_;
         std::vector<typename Node::Ptr> childs_;
-        mutable std::vector<T> tmp_values_;
     };
 
     template <typename Node, typename Operation>
@@ -110,7 +99,7 @@ namespace gubg { namespace gp { namespace tree {
 
         Ptr clone() const { return Ptr{new Self{value_}}; }
         Childs childs() override { return Childs{nullptr, nullptr}; }
-        bool compute(T &v) const override { return value_.compute(v); }
+        bool compute(T &v) override { return value_.compute(v); }
         void dfs(Functor &ftor) const override {ftor(&value_, DFS::Terminal);}
 
     private:

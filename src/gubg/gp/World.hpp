@@ -16,10 +16,13 @@ namespace gubg { namespace gp {
         class World
         {
             private:
-                static constexpr const char *logns = "World";
+                static constexpr const char *logns = nullptr;//"World";
 
             public:
-                World(const Operations &operations): operations_(operations) {}
+                Operations operations;
+
+                World() {}
+                World(const Operations &operations): operations(operations) {}
 
                 void resize(size_t size)
                 {
@@ -44,19 +47,19 @@ namespace gubg { namespace gp {
                         L("Create initial population, if needed");
                         for (auto &creature: population_)
                         {
-                            MSS(operations_.create(creature));
+                            MSS(operations.create(creature));
                         }
                     }
 
                     L("Process the population");
-                    MSS(operations_.process(population_));
+                    MSS(operations.process(population_));
 
                     L("Compute the scores for all");
                     {
                         auto compute_and_set_score = [&](Creature &creature, Info &info)
                         {
                             info.creature = &creature;
-                            return operations_.score(info.score, creature);
+                            return operations.score(info.score, creature);
                         };
                         MSS(gubg::zip(RANGE(population_), infos_.begin(), compute_and_set_score));
                     }
@@ -67,7 +70,7 @@ namespace gubg { namespace gp {
                         for (auto &info: infos_)
                             info.alive = true;
 
-                        auto nr_to_kill = operations_.kill_fraction()*population_.size();
+                        auto nr_to_kill = operations.kill_fraction()*population_.size();
                         //Make sure we do not kill too much: else, mating becomes difficult
                         MSS(nr_to_kill < population_.size()/2);
                         for (; nr_to_kill > 0; )
@@ -135,7 +138,7 @@ namespace gubg { namespace gp {
                             }
                         }
                         assert(!!info.creature);
-                        MSS(operations_.mate(*info.creature, *parent_a, *parent_b));
+                        MSS(operations.mate(*info.creature, *parent_a, *parent_b));
                         info.alive = true;
                     }
 
@@ -153,8 +156,6 @@ namespace gubg { namespace gp {
                 }
 
             private:
-                const Operations operations_;
-
                 using Population = std::vector<Creature>;
                 Population population_;
 
