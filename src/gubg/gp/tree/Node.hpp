@@ -35,6 +35,22 @@ namespace gubg { namespace gp { namespace tree {
         virtual bool compute(T &) = 0;
         virtual void dfs(Functor &ftor) const = 0;
 
+        std::size_t size() const
+        {
+            std::size_t nr = 0;
+            auto visitor = [&](const auto &data, DFS dfs)
+            {
+                switch (dfs)
+                {
+                    case DFS::Open:
+                    case DFS::Terminal:
+                        break;
+                }
+            }
+            dfs(visitor);
+            return nr;
+        }
+
     private:
     };
 
