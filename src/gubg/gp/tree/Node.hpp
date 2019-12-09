@@ -38,12 +38,13 @@ namespace gubg { namespace gp { namespace tree {
         std::size_t size() const
         {
             std::size_t nr = 0;
-            auto visitor = [&](const auto &data, DFS dfs)
+            Functor visitor = [&](const Base *data, DFS dfs)
             {
                 switch (dfs)
                 {
                     case DFS::Open:
                     case DFS::Terminal:
+                        ++nr;
                         break;
                 }
             };
