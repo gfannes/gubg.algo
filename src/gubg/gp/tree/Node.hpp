@@ -46,7 +46,7 @@ namespace gubg { namespace gp { namespace tree {
                     case DFS::Terminal:
                         break;
                 }
-            }
+            };
             dfs(visitor);
             return nr;
         }
