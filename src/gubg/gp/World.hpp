@@ -72,7 +72,7 @@ namespace gubg { namespace gp {
 
                 auto nr_to_kill = operations.kill_fraction()*population_.size();
                 //Make sure we do not kill too much: else, mating becomes difficult
-                MSS(nr_to_kill < population_.size()/2);
+                MSS(nr_to_kill < population_.size());
                 for (; nr_to_kill > 0; )
                 {
                     /* L(C(nr_to_kill)); */
