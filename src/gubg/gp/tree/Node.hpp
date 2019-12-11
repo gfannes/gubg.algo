@@ -51,8 +51,47 @@ namespace gubg { namespace gp { namespace tree {
             dfs(visitor);
             return nr;
         }
+        const Base *get_data(std::size_t ix) const
+        {
+            const Base *d = nullptr;
+            std::size_t nr = 0;
+            Functor visitor = [&](const Base *data, DFS dfs)
+            {
+                if (d)
+                    return;
+                if (nr == ix)
+                    d = data;
+                switch (dfs)
+                {
+                    case DFS::Open:
+                    case DFS::Terminal:
+                        ++nr;
+                        break;
+                }
+            };
+            dfs(visitor);
+            return d;
+        }
+        Self *get_node(std::size_t ix)
+        {
+            std::size_t nr = 0;
+            return get_node_(ix, nr);
+        }
 
     private:
+        Self *get_node_(std::size_t ix, std::size_t &nr)
+        {
+            if (nr == ix)
+                return this;
+            ++nr;
+            for (const auto &child: childs())
+            {
+                auto ptr = child->get_node_(ix, nr);
+                if (ptr)
+                    return ptr;
+            }
+            return nullptr;
+        }
     };
 
     template <typename Node_, typename Operation>
