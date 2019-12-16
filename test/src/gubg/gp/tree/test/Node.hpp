@@ -6,6 +6,37 @@
 
 namespace gubg { namespace gp { namespace tree { namespace test { 
 
+#if gp_new
+    struct X
+    {
+        std::shared_ptr<double> ptr;
+
+        X(): ptr(new double{0}) {}
+
+        std::string hr() const {return "X";}
+
+        void set(double v) { assert(!!ptr); *ptr = v; }
+
+        bool compute(double &v) const { assert(!!ptr); v = *ptr; return true; }
+    };
+
+    struct Plus
+    {
+        std::string hr() const {return "Plus";}
+
+        std::size_t size() const { return 2; }
+    };
+
+    class Visitor_itf
+    {
+    public:
+        virtual void operator()(X &) = 0;
+        virtual void operator()(Plus &) = 0;
+    private:
+    };
+
+    using Node = tree::Node<Visitor_itf>;
+#else
     using T = double;
 
     struct Base
@@ -50,6 +81,7 @@ namespace gubg { namespace gp { namespace tree { namespace test {
             return true;
         }
     };
+#endif
 
 } } } } 
 

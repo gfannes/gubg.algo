@@ -9,6 +9,118 @@
 
 namespace gubg { namespace gp { namespace tree { 
 
+#define gp_new 1
+#if gp_new
+    using Path = std::vector<unsigned int>;
+
+    template <typename Visitor_>
+    class Node
+    {
+    public:
+        using Visitor = Visitor_;
+        using Self = Node<Visitor>;
+        using Ptr = std::shared_ptr<Self>;
+        using Childs = Range<Ptr*>;
+
+        virtual ~Node() {}
+        virtual Ptr clone(bool deep) = 0;
+        virtual void visit(Visitor &) = 0;
+        virtual Childs childs() = 0;
+    private:
+    };
+
+    template <typename Visitor, typename Ftor>
+    bool dfs(typename Node<Visitor>::Ptr &root, Ftor &&ftor, Path &path)
+    {
+        MSS_BEGIN(bool);
+        MSS(!!root);
+        MSS(ftor(root, path, true));
+        path.push_back(0);
+        for (auto &child: root->childs())
+        {
+            MSS(dfs(child, ftor, path));
+            ++path.back();
+        }
+        path.pop_back();
+        MSS(ftor(root, path, false));
+        MSS_END();
+    }
+
+    template <typename Node_, typename Operation>
+    class Function: public Node_
+    {
+    public:
+        using Node = Node_;
+        using Self = Function<Node, Operation>;
+        using Visitor = typename Node::Visitor;
+        using Ptr = typename Node::Ptr;
+        using Childs = typename Node::Childs;
+
+        Function(const Operation &operation): operation_(operation)
+        {
+            childs_.resize(operation_.size());
+        }
+
+        Ptr clone(bool deep) override
+        {
+            Self *raw = new Self{operation_};
+            Ptr ptr{raw};
+            if (deep)
+            {
+                const auto nr_childs = childs_.size();
+                raw->childs_.resize(nr_childs);
+                for (auto i = 0u; i < nr_childs; ++i)
+                    raw->childs_[i] = childs_[i]->clone(deep);
+            }
+            return ptr;
+        }
+        Childs childs() override
+        {
+            auto ptr = childs_.data();
+            return Childs{ptr, ptr+childs_.size()};
+        }
+        void visit(Visitor &v) override { v(operation_); }
+
+    private:
+        std::vector<Ptr> childs_;
+        Operation operation_;
+    };
+
+    template <typename Node, typename Operation>
+    typename Node::Ptr create_function(const Operation &operation)
+    {
+        typename Node::Ptr ptr{new Function<Node, Operation>{operation}};
+        return ptr;
+    }
+
+    template <typename Node_, typename Value>
+    class Terminal: public Node_
+    {
+    public:
+        using Node = Node_;
+        using Self = Terminal<Node, Value>;
+        using Visitor = typename Node::Visitor;
+        using Ptr = typename Node::Ptr;
+        using Childs = typename Node::Childs;
+
+        Terminal(const Value &value): value_(value) {}
+
+        Ptr clone(bool deep) override { return Ptr{new Self{value_}}; }
+        Childs childs() override { return Childs{nullptr, nullptr}; }
+        void visit(Visitor &v) override { v(value_); }
+
+    private:
+        Value value_;
+    };
+
+    template <typename Node_, typename Value>
+    typename Node_::Ptr create_terminal(const Value &value)
+    {
+        typename Node_::Ptr ptr{new Terminal<Node_, Value>{value}};
+        return ptr;
+    }
+
+#else
     //Indicator used during depth-first search to communicate the node type and iteration status
     enum class DFS {Open, Close, Terminal};
 
@@ -168,6 +280,7 @@ namespace gubg { namespace gp { namespace tree {
         typename Node::Ptr ptr{new Terminal<Node, Value>{value}};
         return ptr;
     }
+#endif
 
 } } } 
 

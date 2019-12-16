@@ -7,6 +7,8 @@ using namespace gubg::gp;
 
 TEST_CASE("gp::tree::grow tests", "[ut][gp][tree][Grow]")
 {
+#if gp_new
+#else
     using T = tree::test::T;
     using Node = tree::Node<T, tree::test::Base>;
     using NodePtr = typename Node::Ptr;
@@ -54,4 +56,5 @@ TEST_CASE("gp::tree::grow tests", "[ut][gp][tree][Grow]")
         std::cout << tree.get() << std::endl;
         tree->dfs(print);
     }
+#endif
 }
