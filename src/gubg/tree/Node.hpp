@@ -2,6 +2,7 @@
 #define HEADER_gubg_tree_Node_hpp_ALREADY_INCLUDED
 
 #include <gubg/Range.hpp>
+#include <gubg/mss.hpp>
 #include <vector>
 #include <memory>
 
@@ -22,6 +23,8 @@ namespace gubg { namespace tree {
         virtual Ptr clone(bool deep) = 0;
         virtual void visit(Visitor &) = 0;
         virtual Childs childs() = 0;
+        virtual size_t size() const = 0;
+        virtual bool resize(size_t) = 0;
     };
 
     class NoData { };
@@ -44,6 +47,8 @@ namespace gubg { namespace tree {
         Ptr clone(bool deep) override { return Ptr{new Self{data()}}; }
         void visit(Visitor &v) override {v(data());}
         Childs childs() override { return Childs{nullptr, nullptr}; }
+        size_t size() const override {return 0;}
+        bool resize(size_t size) override {return size == 0;}
     };
     template <typename Node, typename Data = NoData>
     typename Node::Ptr create_leaf(const Data &data = NoData{})
@@ -87,15 +92,37 @@ namespace gubg { namespace tree {
             auto ptr = childs_.data();
             return Childs{ptr, ptr+childs_.size()};
         }
+        size_t size() const override {return childs_.size();}
+        bool resize(size_t size) override {childs_.resize(size); return true;}
 
     private:
         std::vector<Ptr> childs_;
     };
     template <typename Node, typename Data = NoData>
-    typename Node::Ptr create_branch(size_t nr_childs, const Data &data = NoData{})
+    typename Node::Ptr create_branch(const Data &data = NoData{}, size_t nr_childs = 0)
     {
         using Type = BranchNode<Node, Data>;
         return typename Node::Ptr{new Type{data, nr_childs}};
+    }
+
+    //ftor is called as ftor(Ptr &node, Path &path, bool enter)
+    template <typename NodePtr, typename Ftor>
+    bool dfs(NodePtr &root, Ftor &&ftor, Path &path)
+    {
+        MSS_BEGIN(bool);
+        MSS(ftor(root, path, true));
+        if (root)
+        {
+            path.push_back(0);
+            for (auto &child: root->childs())
+            {
+                MSS(dfs(child, ftor, path));
+                ++path.back();
+            }
+            path.pop_back();
+        }
+        MSS(ftor(root, path, false));
+        MSS_END();
     }
 
 } } 
