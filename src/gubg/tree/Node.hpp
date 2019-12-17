@@ -125,6 +125,33 @@ namespace gubg { namespace tree {
         MSS_END();
     }
 
+    namespace details { 
+        template <typename NodePtr>
+        bool search(NodePtr *&dst, NodePtr &node, const Path &path, size_t ix)
+        {
+            MSS_BEGIN(bool);
+            if (path.size() == ix)
+            {
+                //We found the node
+                dst = &node;
+            }
+            else
+            {
+                MSS(!!node);
+                const auto child_ix = path[ix];
+                auto childs = node->childs();
+                MSS(child_ix < childs.size());
+                MSS(search(dst, childs[child_ix], path, ix+1));
+            }
+            MSS_END();
+        }
+    } 
+    template <typename NodePtr>
+    bool search(NodePtr *&dst, NodePtr &root, const Path &path)
+    {
+        return details::search(dst, root, path, 0);
+    }
+
 } } 
 
 #endif
