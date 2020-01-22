@@ -12,7 +12,6 @@ namespace gubg { namespace gp { namespace tree {
     class Grow
     {
     public:
-        using T = typename Node::T;
         using Ptr = typename Node::Ptr;
 
         bool set_probs(double terminal, double function)
