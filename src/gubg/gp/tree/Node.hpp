@@ -49,8 +49,8 @@ namespace gubg { namespace gp { namespace tree {
         }
     };
 
-    template <typename Base, typename Ftor>
-    bool dfs(typename Node<Base>::Ptr &root, Ftor &&ftor, Path &path)
+    template <typename NodePtr, typename Ftor>
+    bool dfs(NodePtr &root, Ftor &&ftor, Path &path)
     {
         MSS_BEGIN(bool);
         MSS(!!root);
@@ -66,90 +66,33 @@ namespace gubg { namespace gp { namespace tree {
         MSS_END();
     }
 
-
-    //Function functionality. A Function is a non-leaf Node.
-    template <typename Node_, typename Operation>
-    class Function: public Node_
+    template <typename NodePtr>
+    NodePtr *find(NodePtr &root, const Path &path, std::size_t offset = 0)
     {
-    public:
-        using Node = Node_;
-        using Self = Function<Node, Operation>;
-        using Base = typename Node::Base;
-        using Ptr = typename Node::Ptr;
-        using Childs = typename Node::Childs;
-        using Childs_const = typename Node::Childs_const;
-
-        Function(const Operation &operation): operation_(operation)
-        {
-            childs_.resize(operation_.size());
-        }
-
-        Ptr clone(bool deep) override
-        {
-            Self *raw = new Self{operation_};
-            Ptr ptr{raw};
-            if (deep)
-            {
-                const auto nr_childs = childs_.size();
-                raw->childs_.resize(nr_childs);
-                for (auto i = 0u; i < nr_childs; ++i)
-                    raw->childs_[i] = childs_[i]->clone(deep);
-            }
-            return ptr;
-        }
-        Childs childs() override
-        {
-            auto ptr = childs_.data();
-            return Childs{ptr, ptr+childs_.size()};
-        }
-        Childs_const childs_const() const override
-        {
-            auto ptr = childs_.data();
-            return Childs_const{ptr, ptr+childs_.size()};
-        }
-        Base &base() override { return operation_; }
-
-    private:
-        std::vector<Ptr> childs_;
-        Operation operation_;
-    };
-
-    template <typename Node, typename Operation>
-    typename Node::Ptr create_function(const Operation &operation)
-    {
-        typename Node::Ptr ptr{new Function<Node, Operation>{operation}};
-        return ptr;
+        if (offset >= path.size())
+            return &root;
+        const auto chix = path[offset];
+        auto chs = root->childs();
+        if (chix >= chs.size())
+            return nullptr;
+        return find(chs[chix], path, offset+1);
     }
 
-
-    //Terminal functionality. A Terminal is a leaf Node.
-    template <typename Node_, typename Value>
-    class Terminal: public Node_
+    //TODO: make this const
+    template <typename NodePtr>
+    std::vector<Path> all_paths(NodePtr &root)
     {
-    public:
-        using Node = Node_;
-        using Self = Terminal<Node, Value>;
-        using Base = typename Node::Base;
-        using Ptr = typename Node::Ptr;
-        using Childs = typename Node::Childs;
-        using Childs_const = typename Node::Childs_const;
-
-        Terminal(const Value &value): value_(value) {}
-
-        Ptr clone(bool deep) override { return Ptr{new Self{value_}}; }
-        Childs childs() override { return Childs{nullptr, nullptr}; }
-        Childs_const childs_const() const override { return Childs_const{nullptr, nullptr}; }
-        Base &base() override { return value_; }
-
-    private:
-        Value value_;
-    };
-
-    template <typename Node_, typename Value>
-    typename Node_::Ptr create_terminal(const Value &value)
-    {
-        typename Node_::Ptr ptr{new Terminal<Node_, Value>{value}};
-        return ptr;
+        std::vector<Path> paths;
+        auto append_path = [&](const auto &root, const auto &path, bool is_enter)
+        {
+            if (is_enter)
+                paths.push_back(path);
+            return true;
+        };
+        Path path;
+        const auto ok = dfs(root, append_path, path);
+        assert(ok);
+        return paths;
     }
 
 } } } 

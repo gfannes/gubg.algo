@@ -8,6 +8,9 @@
 
 namespace gubg { namespace gp { namespace tree { 
 
+    //Grows a tree by selecting terminals and functions at random.
+    //Once the max depth is reached, only terminals are selected.
+
     template <typename Node>
     class Grow
     {
@@ -43,7 +46,7 @@ namespace gubg { namespace gp { namespace tree {
         template <typename TerminalFactory, typename FunctionFactory>
         bool grow_(Ptr &node, TerminalFactory &&terminal_factory, FunctionFactory &&function_factory, unsigned int depth)
         {
-            MSS_BEGIN(bool, "");
+            MSS_BEGIN(bool);
             if (depth < *max_depth_)
             {
                 //We can still choose between terminals or functions

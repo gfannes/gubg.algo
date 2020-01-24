@@ -16,7 +16,7 @@ namespace gubg { namespace gp {
     class World
     {
     private:
-        static constexpr const char *logns = nullptr;//"World";
+        static constexpr const char *logns = "World";
 
     public:
         Operations operations;
@@ -51,7 +51,7 @@ namespace gubg { namespace gp {
                 }
             }
 
-            L("Process the population");
+            L("Process the population: living without procreation");
             MSS(operations.process(population_));
 
             L("Compute the scores for all");
@@ -113,7 +113,7 @@ namespace gubg { namespace gp {
                 }
             }
 
-            L("Mate");
+            L("Mate " C(infos_.size()));
             for (auto &info: infos_)
             {
                 if (info.alive)

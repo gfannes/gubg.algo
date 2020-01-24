@@ -7,10 +7,7 @@ using namespace gubg::gp;
 
 TEST_CASE("gp::tree::grow tests", "[ut][gp][tree][Grow]")
 {
-#if gp_new
-#else
-    using T = tree::test::T;
-    using Node = tree::Node<T, tree::test::Base>;
+    using Node = tree::Node<tree::test::Base>;
     using NodePtr = typename Node::Ptr;
 
     std::mt19937 rng;
@@ -20,7 +17,7 @@ TEST_CASE("gp::tree::grow tests", "[ut][gp][tree][Grow]")
     terminals.push_back(tree::create_terminal<Node>(x));
     auto terminal_factory = [&](auto &ptr)
     {
-        ptr = terminals[std::uniform_int_distribution<>{0,terminals.size()-1}(rng)]->clone();
+        ptr = terminals[std::uniform_int_distribution<>(0,terminals.size()-1)(rng)]->clone(true);
         return true;
     };
 
@@ -29,7 +26,7 @@ TEST_CASE("gp::tree::grow tests", "[ut][gp][tree][Grow]")
     functions.push_back(tree::create_function<Node>(plus));
     auto function_factory = [&](auto &ptr)
     {
-        ptr = functions[std::uniform_int_distribution<>{0,functions.size()-1}(rng)]->clone();
+        ptr = functions[std::uniform_int_distribution<>(0,functions.size()-1)(rng)]->clone(true);
         return true;
     };
 
@@ -44,17 +41,15 @@ TEST_CASE("gp::tree::grow tests", "[ut][gp][tree][Grow]")
     }
     std::cout << "All trees are grown" << std::endl;
 
-    int level = 0;
-    typename Node::Functor print = [&](const Node::Base *base, tree::DFS dfs)
+    auto print = [&](auto n, const auto &path, bool is_enter)
     {
-        level -= (dfs == tree::DFS::Close);
-        std::cout << std::string(2*level, ' ') << base->hr() << std::endl;
-        level += (dfs == tree::DFS::Open);
+        std::cout << std::string(2*path.size(), ' ') << n->base().hr() << std::endl;
+        return true;
     };
     for (auto &tree: trees)
     {
         std::cout << tree.get() << std::endl;
-        tree->dfs(print);
+        tree::Path path;
+        tree::dfs(tree, print, path);
     }
-#endif
 }
