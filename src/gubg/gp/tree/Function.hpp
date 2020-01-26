@@ -33,7 +33,7 @@ namespace gubg { namespace gp { namespace tree {
                 raw->childs_.resize(nr_childs);
                 for (auto i = 0u; i < nr_childs; ++i)
                     if (childs_[i])
-                        raw->childs_[i] = childs_[i]->clone(deep);
+                        raw->childs_[i] = childs_[i]->clone(true);
             }
             return ptr;
         }
