@@ -66,6 +66,13 @@ namespace gubg { namespace gp { namespace tree {
         MSS_END();
     }
 
+    template <typename NodePtr, typename Ftor>
+    bool dfs(NodePtr &root, Ftor &&ftor)
+    {
+        Path path;
+        return dfs(root, ftor, path);
+    }
+
     template <typename NodePtr>
     NodePtr *find(NodePtr &root, const Path &path, std::size_t offset = 0)
     {

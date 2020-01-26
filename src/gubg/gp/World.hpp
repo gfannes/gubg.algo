@@ -5,6 +5,7 @@
 #include "gubg/zip.hpp"
 #include "gubg/mss.hpp"
 #include "gubg/debug.hpp"
+#include <gubg/prob/Uniform.hpp>
 #include <vector>
 #include <random>
 #include <memory>
@@ -16,7 +17,7 @@ namespace gubg { namespace gp {
     class World
     {
     private:
-        static constexpr const char *logns = "World";
+        static constexpr const char *logns = nullptr;//"World";
 
     public:
         Operations operations;
@@ -123,11 +124,15 @@ namespace gubg { namespace gp {
                 const Creature *parent_b = nullptr;
                 while (!parent_a || !parent_b)
                 {
+#if 0
                     const auto rnd = geometric_(rng_);
                     if (rnd >= infos_.size())
                         continue;
                     const auto ix = infos_.size() - 1 - rnd;
                     const auto &inf = infos_[ix];
+#else
+                    const auto &inf = prob::select_uniform(infos_, rng_);
+#endif
                     if (inf.alive)
                     {
                         assert(!!inf.creature);
@@ -174,7 +179,7 @@ namespace gubg { namespace gp {
         double best_score_;
 
         std::mt19937 rng_;
-        std::geometric_distribution<> geometric_{0.5};
+        std::geometric_distribution<> geometric_{0.2};
     };
 
 } } 
