@@ -12,7 +12,7 @@ root.book("gubg/algo", fun(b){
     })
 
     b.recipe("ut", fun(r){
-        r.add("test/src", "**.cpp")
+        r.add("test/src", "**.[hc]pp")
         r.depends_on("func")
         r.depends_on("/catch/func")
     })
