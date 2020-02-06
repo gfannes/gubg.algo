@@ -18,6 +18,7 @@ namespace gubg { namespace tree {
     class Forest
     {
     public:
+        using Self = Forest<T>;
         using Node = tree::Node<T>;
         using Nodes = std::vector<Node>;
 
@@ -25,6 +26,8 @@ namespace gubg { namespace tree {
         Nodes nodes;
 
         bool empty() const {return nodes.empty();}
+
+        void clear() {*this = Self{};}
 
         std::size_t node_count() const { return std::accumulate(nodes.begin(), nodes.end(), std::size_t{0}, [](std::size_t count, const Node &node){return count+1+node.childs.node_count();}); }
 
@@ -36,7 +39,7 @@ namespace gubg { namespace tree {
         Node *find(std::size_t nix, bool create = false) {return nix < nodes.size() ? &nodes[nix] : (create ? (nodes.resize(nix+1), &nodes[nix]) : nullptr);}
         const Node *find(std::size_t nix) const {return nix < nodes.size() ? &nodes[nix] : nullptr;}
 
-        //Depth-first search
+        //Depth-first search. ftor is called with arguments: ftor(node, path, (bool)enter)
         template <typename Ftor>
         void dfs(Ftor &&ftor) { Path path; dfs_(ftor, path); }
         template <typename Ftor>

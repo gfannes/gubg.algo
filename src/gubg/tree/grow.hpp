@@ -22,6 +22,8 @@ namespace gubg { namespace tree {
         }
     } 
 
+    //ftor is called on newly created nodes together with their path and can hence specialize it: ftor(node, path)
+    //The first node in the forest is created automatically, the rest of the childs sholud be created via node.childs.nodes.resize()
     template <typename Forest, typename Ftor>
     void grow(Forest &forest, Ftor &&ftor)
     {

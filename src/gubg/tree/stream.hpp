@@ -1,6 +1,7 @@
 #ifndef HEADER_gubg_tree_stream_hpp_ALREADY_INCLUDED
 #define HEADER_gubg_tree_stream_hpp_ALREADY_INCLUDED
 
+#include <gubg/hr.hpp>
 #include <ostream>
 
 namespace gubg { namespace tree { 
@@ -10,11 +11,13 @@ namespace gubg { namespace tree {
     {
         auto my_ftor = [&](const auto &node, const auto &path, bool enter)
         {
-            /* if (enter) */
+            if (enter)
             {
-                os << std::string(path.size()*2, ' ');
-                os << (enter ? ">>" : "<<");
+                os << std::string((path.size()-1)*2, ' ');
+                /* os << (enter ? ">>" : "<<"); */
+                os << (enter ? "# " : "  ");
                 ftor(os, node);
+                os << " " << gubg::hr(path);
                 os << std::endl;
             }
         };

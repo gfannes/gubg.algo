@@ -1,9 +1,11 @@
 #ifndef HEADER_gubg_gp_W2_hpp_ALREADY_INCLUDED
 #define HEADER_gubg_gp_W2_hpp_ALREADY_INCLUDED
 
+#include <gubg/tree/stream.hpp>
 #include <gubg/prob/Uniform.hpp>
 #include <gubg/mss.hpp>
 #include <gubg/Range.hpp>
+#include <gubg/stat/Boxplot.hpp>
 #include <vector>
 #include <random>
 #include <algorithm>
@@ -14,6 +16,8 @@ namespace gubg { namespace gp {
     class W2: public Policy
     {
     public:
+        bool do_log = true;
+
         bool process()
         {
             MSS_BEGIN(bool);
@@ -43,7 +47,14 @@ namespace gubg { namespace gp {
             MSS_BEGIN(bool);
             for (auto &entity: population_)
                 if (entity.geno.empty())
+                {
                     MSS(Policy::grow(entity.geno));
+                    if (do_log)
+                    {
+                        std::cout << "Created new geno:" << std::endl;
+                        gubg::tree::stream(std::cout, entity.geno);
+                    }
+                }
             MSS_END();
         }
         bool spawn_dead_phenos_()
@@ -57,10 +68,30 @@ namespace gubg { namespace gp {
         bool score_()
         {
             MSS_BEGIN(bool);
-            for (auto &entity: population_)
+
+            const auto size = population_.size();
+            genos_.resize(size);
+            phenos_.resize(size);
+            scores_.resize(size);
+
+            for (auto ix = 0u; ix < size; ++ix)
             {
-                MSS(Policy::score(entity.score, entity.pheno));
+                auto &entity = population_[ix];
+                genos_[ix] = &entity.geno;
+                phenos_[ix] = &entity.pheno;
+                scores_[ix] = &entity.score;
             }
+
+            MSS(Policy::score(scores_, genos_, phenos_, generation_));
+
+            if (false)
+            {
+                score_boxplot_.reset();
+                for (auto &entity: population_)
+                    score_boxplot_ << entity.score;
+                score_boxplot_.calculate().stream(std::cout);
+            }
+
             MSS_END();
         }
         bool create_mate_pool_()
@@ -80,7 +111,7 @@ namespace gubg { namespace gp {
 
             mate_pool_.resize(size);
             /* const double p = 1.0-std::pow(1.0/std::log(size), 1.0/size); */
-            const double p = 1.0-std::pow(1.0/2.0, 1.0/size);
+            const double p = 1.0-std::pow(1.0/20.0, 1.0/size);
             std::geometric_distribution<> geometric{p};
             for (auto ix = 0u; ix < size; ++ix)
             {
@@ -129,7 +160,13 @@ namespace gubg { namespace gp {
         std::vector<Entity *> ordered_population_;
         std::vector<Entity *> mate_pool_;
 
+        std::vector<const Geno *> genos_;
+        std::vector<const Pheno *> phenos_;
+        std::vector<double *> scores_;
+
         std::mt19937 rng_;
+
+        gubg::stat::Boxplot score_boxplot_;
     };
 
 } } 

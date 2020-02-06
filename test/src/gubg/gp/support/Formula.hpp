@@ -1,27 +1,33 @@
 #ifndef HEADER_gubg_gp_support_Formula_hpp_ALREADY_INCLUDED
 #define HEADER_gubg_gp_support_Formula_hpp_ALREADY_INCLUDED
 
+#include <gubg/tree/Forest.hpp>
+#include <gubg/tree/stream.hpp>
 #include <gubg/mss.hpp>
 #include <vector>
 #include <cmath>
+#include <sstream>
 
 namespace support { 
 
     namespace geno { 
-        struct Node
+        using Forest = gubg::tree::Forest<std::string>;
+        std::string hr(const Forest &forest)
         {
-            std::string name;
-        };
+            std::ostringstream oss;
+            gubg::tree::stream(oss, forest);
+            return oss.str();
+        }
     } 
 
     namespace pheno { 
         struct Operation
         {
-            static const size_t Plus = 0;
-            static const size_t Mul = 1;
-            static const size_t Sine = 2;
-            static const size_t Exp = 3;
-            static const size_t Nr_ = 4;
+            static const constexpr size_t Plus = 0;
+            static const constexpr size_t Mul = 1;
+            static const constexpr size_t Sine = 2;
+            static const constexpr size_t Cosine = 3;
+            static const constexpr size_t Nr_ = 4;
         };
         using Formula = std::vector<size_t>;
 
@@ -82,12 +88,12 @@ namespace support {
                             dst = std::sin(tape[aix]);
                         }
                         break;
-                    case Operation::Exp:
+                    case Operation::Cosine:
                         {
                             if (SafeMode) MSS(fsize_left >= 1);
                             const auto aix = formula[fix++];
                             if (SafeMode) MSS(aix < tix);
-                            dst = std::exp(tape[aix]);
+                            dst = std::cos(tape[aix]);
                         }
                         break;
                     default:

@@ -30,6 +30,11 @@ namespace gubg {
             sum_squares_ += v*v;
             ++size_;
         }
+        Self &operator<<(T v)
+        {
+            process(v);
+            return *this;
+        }
 
     private:
         T sum_squares_ = 0;
