@@ -68,10 +68,10 @@ TEST_CASE("tree tests", "[tree][Forest]")
     {
         std::cout << "Forest " << &f << std::endl;
         auto indent = [&](const auto &path) { return std::string(path.size()*2, ' '); };
-        auto ftor = [&](const auto &node, const auto &path, bool enter)
+        auto ftor = [&](const auto &node, const auto &path, unsigned int count)
         {
             std::cout << indent(path);
-            if (enter)
+            if (count == 0)
                 std::cout << ">> ";
             else
                 std::cout << "<< ";

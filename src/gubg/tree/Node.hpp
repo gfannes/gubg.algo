@@ -17,6 +17,36 @@ namespace gubg { namespace tree {
 
         bool is_leaf() const {return childs.empty();}
 
+        //Depth-first search. ftor is called with arguments: ftor(node, path, visit_count)
+        template <typename Ftor>
+        void dfs(Ftor &&ftor, Path &path)
+        {
+            const auto size = childs.nodes.size();
+            auto nix = 0u;
+            for (; nix < size; ++nix)
+            {
+                ftor(*this, path, nix);
+                path.push_back(nix);
+                childs.nodes[nix].dfs(ftor, path);
+                path.pop_back();
+            }
+            ftor(*this, path, nix);
+        }
+        template <typename Ftor>
+        void dfs(Ftor &&ftor, Path &path) const
+        {
+            const auto size = childs.nodes.size();
+            auto nix = 0u;
+            for (; nix < size; ++nix)
+            {
+                ftor(*this, path, nix);
+                path.push_back(nix);
+                childs.nodes[nix].dfs(ftor, path);
+                path.pop_back();
+            }
+            ftor(*this, path, nix);
+        }
+
     private:
     };
 

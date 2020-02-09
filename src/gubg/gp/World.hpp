@@ -1,185 +1,172 @@
-#ifndef HEADER_gubg_gp_Word_hpp_ALREADY_INCLUDED
-#define HEADER_gubg_gp_Word_hpp_ALREADY_INCLUDED
+#ifndef HEADER_gubg_gp_World_hpp_ALREADY_INCLUDED
+#define HEADER_gubg_gp_World_hpp_ALREADY_INCLUDED
 
-#include "gubg/Range.hpp"
-#include "gubg/zip.hpp"
-#include "gubg/mss.hpp"
-#include "gubg/debug.hpp"
+#include <gubg/tree/stream.hpp>
 #include <gubg/prob/Uniform.hpp>
+#include <gubg/mss.hpp>
+#include <gubg/Range.hpp>
+#include <gubg/stat/Boxplot.hpp>
 #include <vector>
 #include <random>
-#include <memory>
-#include <cassert>
+#include <algorithm>
 
 namespace gubg { namespace gp { 
 
-    template <typename Creature, typename Operations>
-    class World
+    template <typename Policy>
+    class World: public Policy
     {
-    private:
-        static constexpr const char *logns = nullptr;//"World";
-
     public:
-        Operations operations;
-
-        World() {}
-        World(const Operations &operations): operations(operations) {}
-
-        void resize(size_t size)
-        {
-            S("resize");L(C(size));
-            population_.resize(size);
-            infos_.resize(size);
-            generation_ = -1;
-        }
-
-        const Creature *best() const {return best_.get();}
+        bool do_log = true;
 
         bool process()
         {
-            MSS_BEGIN(bool, logns);
+            MSS_BEGIN(bool);
+
+            population_.resize(Policy::population_size(generation_));
+
+            MSS(create_initial_genos_());
+
+            MSS(spawn_dead_phenos_());
+
+            MSS(score_());
+
+            MSS(create_mate_pool_());
+            MSS(replace_unselected_entities_());
 
             ++generation_;
-
-            L("Processing " << C(generation_));
-
-            if (generation_ == 0)
-            {
-                L("Create initial population, if needed");
-                for (auto &creature: population_)
-                {
-                    MSS(operations.create(creature));
-                }
-            }
-
-            L("Process the population: living without procreation");
-            MSS(operations.process(population_));
-
-            L("Compute the scores for all");
-            {
-                auto compute_and_set_score = [&](Creature &creature, Info &info)
-                {
-                    info.creature = &creature;
-                    return operations.score(info.score, creature);
-                };
-                MSS(gubg::zip(RANGE(population_), infos_.begin(), compute_and_set_score));
-            }
-
-            L("Kill the weak");
-            {
-                std::sort(RANGE(infos_), [](const Info &a, const Info &b) { return a.score < b.score;});
-                for (auto &info: infos_)
-                    info.alive = true;
-
-                auto nr_to_kill = operations.kill_fraction()*population_.size();
-                //Make sure we do not kill too much: else, mating becomes difficult
-                MSS(nr_to_kill < population_.size());
-                for (; nr_to_kill > 0; )
-                {
-                    /* L(C(nr_to_kill)); */
-                    const auto kill_ix = geometric_(rng_);
-                    if (kill_ix >= infos_.size())
-                    {
-                        L("kill_ix too large");
-                        continue;
-                    }
-
-                    bool killed = false;
-                    if (!killed)
-                        for (int ix = kill_ix; ix >= 0; --ix)
-                        {
-                            auto &info = infos_[ix];
-                            if (info.alive)
-                            {
-                                L("Killing " << C(ix));
-                                killed = true;
-                                info.alive = false;
-                                break;
-                            }
-                        }
-                    if (!killed)
-                        for (int ix = kill_ix; ix < population_.size(); ++ix)
-                        {
-                            auto &info = infos_[ix];
-                            if (info.alive)
-                            {
-                                L("Killing " << C(ix));
-                                killed = true;
-                                info.alive = false;
-                                break;
-                            }
-                        }
-                    if (killed)
-                        --nr_to_kill;
-                }
-            }
-
-            L("Mate " C(infos_.size()));
-            for (auto &info: infos_)
-            {
-                if (info.alive)
-                    break;
-                //This is a dead creature, replace it with a new one
-                const Creature *parent_a = nullptr;
-                const Creature *parent_b = nullptr;
-                while (!parent_a || !parent_b)
-                {
-#if 0
-                    const auto rnd = geometric_(rng_);
-                    if (rnd >= infos_.size())
-                        continue;
-                    const auto ix = infos_.size() - 1 - rnd;
-                    const auto &inf = infos_[ix];
-#else
-                    const auto &inf = prob::select_uniform(infos_, rng_);
-#endif
-                    if (inf.alive)
-                    {
-                        assert(!!inf.creature);
-                        if (!parent_a)
-                            parent_a = inf.creature;
-                        else
-                            parent_b = inf.creature;
-                    }
-                }
-                assert(!!info.creature);
-                MSS(operations.mate(*info.creature, *parent_a, *parent_b));
-                info.alive = true;
-            }
-
-            //Sort again
-            std::sort(RANGE(infos_), [](const Info &a, const Info &b) { return a.score < b.score;});
-
-            const auto &best_info = infos_.back();
-            if (!best_ || (!!best_info.creature && best_info.score > best_score_))
-            {
-                best_.reset(new Creature(*best_info.creature));
-                best_score_ = best_info.score;
-            }
 
             MSS_END();
         }
 
     private:
-        using Population = std::vector<Creature>;
+        using Geno = typename Policy::Geno;
+        using Pheno = typename Policy::Pheno;
+
+        bool create_initial_genos_()
+        {
+            MSS_BEGIN(bool);
+            for (auto &entity: population_)
+                if (entity.geno.empty())
+                {
+                    MSS(Policy::grow(entity.geno));
+                    if (do_log)
+                    {
+                        std::cout << "Created new geno:" << std::endl;
+                        gubg::tree::stream(std::cout, entity.geno);
+                    }
+                }
+            MSS_END();
+        }
+        bool spawn_dead_phenos_()
+        {
+            MSS_BEGIN(bool);
+            for (auto &entity: population_)
+                if (entity.selection_count == 0)
+                    MSS(Policy::spawn(entity.pheno, entity.geno));
+            MSS_END();
+        }
+        bool score_()
+        {
+            MSS_BEGIN(bool);
+
+            const auto size = population_.size();
+            genos_.resize(size);
+            phenos_.resize(size);
+            scores_.resize(size);
+
+            for (auto ix = 0u; ix < size; ++ix)
+            {
+                auto &entity = population_[ix];
+                genos_[ix] = &entity.geno;
+                phenos_[ix] = &entity.pheno;
+                scores_[ix] = &entity.score;
+            }
+
+            MSS(Policy::score(scores_, genos_, phenos_, generation_));
+
+            if (false)
+            {
+                score_boxplot_.reset();
+                for (auto &entity: population_)
+                    score_boxplot_ << entity.score;
+                score_boxplot_.calculate().stream(std::cout);
+            }
+
+            MSS_END();
+        }
+        bool create_mate_pool_()
+        {
+            MSS_BEGIN(bool);
+
+            const auto size = population_.size();
+            ordered_population_.resize(size);
+            for (auto ix = 0u; ix < size; ++ix)
+            {
+                auto &entity = population_[ix];
+                entity.selection_count = 0;
+                ordered_population_[ix] = &entity;
+            }
+
+            std::sort(RANGE(ordered_population_), [](Entity *a, Entity *b) { return b->score < a->score;});
+
+            mate_pool_.resize(size);
+            /* const double p = 1.0-std::pow(1.0/std::log(size), 1.0/size); */
+            const double p = 1.0-std::pow(1.0/20.0, 1.0/size);
+            std::geometric_distribution<> geometric{p};
+            for (auto ix = 0u; ix < size; ++ix)
+            {
+                while (true)
+                {
+                    const size_t selected_ix = geometric(rng_);
+                    if (selected_ix < size)
+                    {
+                        Entity *selected_entity = ordered_population_[selected_ix];
+                        ++selected_entity->selection_count;
+                        mate_pool_[ix] = selected_entity;
+                        break;
+                    }
+                }
+            }
+
+            MSS_END();
+        }
+        bool replace_unselected_entities_()
+        {
+            MSS_BEGIN(bool);
+
+            for (auto &entity: population_)
+                if (entity.selection_count == 0)
+                {
+                    Entity *a = gubg::prob::select_uniform(mate_pool_, rng_);
+                    Entity *b = gubg::prob::select_uniform(mate_pool_, rng_);
+                    MSS(Policy::procreate(entity.geno, a->geno, b->geno));
+                }
+
+            MSS_END();
+        }
+
+        unsigned int generation_ = 0;
+
+        struct Entity
+        {
+            Geno geno{};
+            Pheno pheno{};
+            double score{};
+            unsigned int selection_count{};
+        };
+        using Population = std::vector<Entity>;
         Population population_;
 
-        struct Info
-        {
-            Creature *creature = nullptr;
-            double score = 0.0;
-            bool alive = false;
-        };
-        using Infos = std::vector<Info>;
-        Infos infos_;
+        std::vector<Entity *> ordered_population_;
+        std::vector<Entity *> mate_pool_;
 
-        int generation_ = -1;
-
-        std::unique_ptr<Creature> best_;
-        double best_score_;
+        std::vector<const Geno *> genos_;
+        std::vector<const Pheno *> phenos_;
+        std::vector<double *> scores_;
 
         std::mt19937 rng_;
-        std::geometric_distribution<> geometric_{0.2};
+
+        gubg::stat::Boxplot score_boxplot_;
     };
 
 } } 

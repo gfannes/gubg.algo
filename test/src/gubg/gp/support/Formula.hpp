@@ -12,7 +12,7 @@ namespace support {
 
     namespace geno { 
         using Forest = gubg::tree::Forest<std::string>;
-        std::string hr(const Forest &forest)
+        inline std::string hr(const Forest &forest)
         {
             std::ostringstream oss;
             gubg::tree::stream(oss, forest);

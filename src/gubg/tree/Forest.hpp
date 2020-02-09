@@ -39,11 +39,29 @@ namespace gubg { namespace tree {
         Node *find(std::size_t nix, bool create = false) {return nix < nodes.size() ? &nodes[nix] : (create ? (nodes.resize(nix+1), &nodes[nix]) : nullptr);}
         const Node *find(std::size_t nix) const {return nix < nodes.size() ? &nodes[nix] : nullptr;}
 
-        //Depth-first search. ftor is called with arguments: ftor(node, path, (bool)enter)
+        //Depth-first search. ftor is called with arguments: ftor(node, path, visit_count)
         template <typename Ftor>
-        void dfs(Ftor &&ftor) { Path path; dfs_(ftor, path); }
+        void dfs(Ftor &&ftor)
+        {
+            Path path = {0u};
+            const auto size = nodes.size();
+            for (auto nix = 0u; nix < size; ++nix)
+            {
+                path.back() = nix;
+                nodes[nix].dfs(ftor, path);
+            }
+        }
         template <typename Ftor>
-        void dfs(Ftor &&ftor) const { Path path; dfs_(ftor, path); }
+        void dfs(Ftor &&ftor) const
+        {
+            Path path = {0u};
+            const auto size = nodes.size();
+            for (auto nix = 0u; nix < size; ++nix)
+            {
+                path.back() = nix;
+                nodes[nix].dfs(ftor, path);
+            }
+        }
 
     private:
         Node *find_(const Path &path, bool create, std::size_t offset)
@@ -77,35 +95,6 @@ namespace gubg { namespace tree {
             if (offset+1 == path.size())
                 return &node;
             return node.childs.find_(path, offset+1);
-        }
-
-        template <typename Ftor>
-        void dfs_(Ftor &&ftor, Path &path)
-        {
-            const auto size = nodes.size();
-            for (auto nix = 0u; nix < size; ++nix)
-            {
-                auto &node = nodes[nix];
-                path.push_back(nix);
-                ftor(node, path, true);
-                node.childs.dfs_(ftor, path);
-                ftor(node, path, false);
-                path.pop_back();
-            }
-        }
-        template <typename Ftor>
-        void dfs_(Ftor &&ftor, Path &path) const
-        {
-            const auto size = nodes.size();
-            for (auto nix = 0u; nix < size; ++nix)
-            {
-                const auto &node = nodes[nix];
-                path.push_back(nix);
-                ftor(node, path, true);
-                node.childs.dfs_(ftor, path);
-                ftor(node, path, false);
-                path.pop_back();
-            }
         }
     };
 
