@@ -16,6 +16,7 @@ namespace gubg { namespace tree {
         Forest childs;
 
         bool is_leaf() const {return childs.empty();}
+        std::size_t nr_childs() const {return childs.size();}
 
         //Depth-first search. ftor is called with arguments: ftor(node, path, visit_count)
         template <typename Ftor>

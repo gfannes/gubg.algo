@@ -26,6 +26,7 @@ namespace gubg { namespace tree {
         Nodes nodes;
 
         bool empty() const {return nodes.empty();}
+        std::size_t size() const {return nodes.size();}
 
         void clear() {*this = Self{};}
 
