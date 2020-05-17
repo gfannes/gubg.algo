@@ -4,6 +4,7 @@
 #include <vector>
 #include <cstdint>
 #include <numeric>
+#include <utility>
 
 namespace gubg { namespace tree { 
 
@@ -39,6 +40,16 @@ namespace gubg { namespace tree {
         //Find/create a node based on an index
         Node *find(std::size_t nix, bool create = false) {return nix < nodes.size() ? &nodes[nix] : (create ? (nodes.resize(nix+1), &nodes[nix]) : nullptr);}
         const Node *find(std::size_t nix) const {return nix < nodes.size() ? &nodes[nix] : nullptr;}
+
+        //Add new node
+        template <typename... Args>
+        Node &append(Args&&... args)
+        {
+            nodes.emplace_back();
+            auto &res = nodes.back();
+            res.value = T(std::forward<Args>(args)...);
+            return res;
+        }
 
         //Depth-first search. ftor is called with arguments: ftor(node, path, visit_count)
         template <typename Ftor>
