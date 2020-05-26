@@ -2,6 +2,7 @@
 #define HEADER_gubg_tree_Node_hpp_ALREADY_INCLUDED
 
 #include <gubg/tree/Forest.hpp>
+#include <optional>
 
 namespace gubg { namespace tree { 
 
@@ -17,6 +18,19 @@ namespace gubg { namespace tree {
 
         bool is_leaf() const {return childs.empty();}
         std::size_t nr_childs() const {return childs.size();}
+
+        template <typename Ftor>
+        std::optional<std::size_t> find_child_ix(Ftor &&ftor) const
+        {
+            std::size_t ix = 0;
+            for (const auto &node: childs.nodes)
+            {
+                if (ftor(node))
+                    return ix;
+                ++ix;
+            }
+            return std::optional<std::size_t>{};
+        }
 
         //Depth-first search. ftor is called with arguments: ftor(node, path, visit_count)
         template <typename Ftor>
