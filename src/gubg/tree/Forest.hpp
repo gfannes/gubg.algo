@@ -51,6 +51,17 @@ namespace gubg { namespace tree {
             return res;
         }
 
+        //Remove a node
+        template <typename Ftor>
+        void remove_if(Ftor &&ftor)
+        {
+            Nodes new_nodes;
+            for (const auto &node: nodes)
+                if (!ftor(node))
+                    new_nodes.push_back(node);
+            nodes.swap(new_nodes);
+        }
+
         //Depth-first search. ftor is called with arguments: ftor(node, path, visit_count)
         template <typename Ftor>
         void dfs(Ftor &&ftor)
