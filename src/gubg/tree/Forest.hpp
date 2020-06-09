@@ -50,6 +50,16 @@ namespace gubg { namespace tree {
             res.value = T(std::forward<Args>(args)...);
             return res;
         }
+        //Insert new node
+        template <typename... Args>
+        Node &insert(std::size_t ix, Args&&... args)
+        {
+            auto pos = nodes.begin()+ix;
+            Node n;
+            n.value = T(std::forward<Args>(args)...);
+            pos = nodes.insert(pos, n);
+            return *pos;
+        }
 
         //Remove a node
         template <typename Ftor>
