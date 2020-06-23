@@ -21,6 +21,7 @@ namespace gubg { namespace graph {
         return os;
     }
 
+    //Vertex should be copyable
     template <typename Vertex>
     class TopologicalOrder
     {
