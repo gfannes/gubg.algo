@@ -19,6 +19,8 @@ namespace gubg { namespace tree {
         bool is_leaf() const {return childs.empty();}
         std::size_t nr_childs() const {return childs.size();}
 
+        std::size_t node_count() const { return childs.node_count(); }
+
         template <typename Ftor>
         std::optional<std::size_t> find_child_ix(Ftor &&ftor) const
         {
