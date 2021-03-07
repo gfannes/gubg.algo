@@ -181,12 +181,15 @@ namespace support {
             std::cout << "Best geno: " << best_score << "\n" << support::geno::hr(*best_geno);
 
             if (!ww_)
-                ww_.emplace("output.wav", 2, 48000);
+            {
+                ww_.emplace();
+                MSS(ww_->open("output.wav", 1, 2, 48000));
+            }
 
             {
-                std::array<double, 2> sample{};
+                std::array<float, 2> sample{};
                 for (auto ix = 0u; ix < 20; ++ix)
-                    ww_->add_sample(sample);
+                    ww_->write_block([&](auto chix){return &sample[chix];});
 
                 tape_.resize(support::pheno::IX::Nr_);
                 tape_[support::pheno::IX::A] = a;
@@ -199,7 +202,7 @@ namespace support {
                     tape_[support::pheno::IX::X] = x;
                     support::pheno::process<false>(tape_, *best_pheno);
                     sample[1] = tape_.back();
-                    ww_->add_sample(sample);
+                    ww_->write_block([&](auto chix){return &sample[chix];});
                 }
             }
 

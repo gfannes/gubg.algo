@@ -13,13 +13,15 @@ TEST_CASE("signal::LinearChirp create WAVE file", "[ut][signal][LinearChirp][wav
     const double duration_sec = 3.0;
     const double samplerate = 48000;
     gubg::signal::LinearChirp<double> chirp{0.1, 0.0, 20.0, 20000.0, duration_sec};
-    gubg::wav::Writer writer{"linear_chirp.wav", 1, samplerate};
+    gubg::wav::Writer writer;
+    writer.open("linear_chirp.wav", 1, 1, samplerate, 24);
 
     const unsigned int duration_samples = duration_sec*samplerate;
     for (unsigned int six = 0; six < duration_samples; ++six)
     {
         const double t = six/samplerate;
-        REQUIRE(writer.add_value(chirp(t)));
+        const float flt = chirp(t)*(1<<23);
+        REQUIRE(writer.write_mono(&flt));
     }
 }
 
@@ -59,8 +61,9 @@ TEST_CASE("signal::LinearChirp invert tests", "[ut][signal][LinearChirp][invert]
         bp_b.set(coeffs);
     }
 
-    gubg::wav::Writer writer{"inv_chirp.wav", 5, samplerate};
-    std::vector<double> sample;
+    gubg::wav::Writer writer;
+    writer.open("inv_chirp.wav", 1, 5, samplerate, 24);
+    std::vector<float> sample;
     for (auto six = 0; six < 3*duration_samples; ++six)
     {
         const auto impulse = (six == duration_samples ? amplitude : 0.0);
@@ -71,11 +74,11 @@ TEST_CASE("signal::LinearChirp invert tests", "[ut][signal][LinearChirp][invert]
         const auto bp_chirp = bp_b(chirp);
 
         sample.clear();
-        sample.push_back(chirp);
-        sample.push_back(impulse);
-        sample.push_back(bp_impulse);
-        sample.push_back(bp_chirp);
-        sample.push_back(inv_chirp(bp_chirp));
-        REQUIRE(writer.add_sample(sample));
+        sample.push_back(chirp*(1<<23));
+        sample.push_back(impulse*(1<<23));
+        sample.push_back(bp_impulse*(1<<23));
+        sample.push_back(bp_chirp*(1<<23));
+        sample.push_back(inv_chirp(bp_chirp)*(1<<23));
+        REQUIRE(writer.write_block([&](auto chix){return sample.data()+chix;}));
     }
 }
