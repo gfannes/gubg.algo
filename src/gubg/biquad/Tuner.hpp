@@ -193,6 +193,7 @@ namespace gubg { namespace biquad {
                         a2 = ((a_+1)-(a_-1)*cos_w0-2*sqrt_a*alpha);
                     }
                     break;
+                default: MSS(false); break;
             }
 
             MSS_END();
