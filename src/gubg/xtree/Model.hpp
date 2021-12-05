@@ -9,6 +9,7 @@
 #include <map>
 #include <set>
 #include <utility>
+#include <optional>
 
 namespace gubg { namespace xtree { 
 
