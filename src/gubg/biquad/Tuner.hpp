@@ -30,6 +30,23 @@ namespace gubg { namespace biquad {
         Nr_,
     };
 
+    inline bool from_string(Type &type, const std::string &str)
+    {
+        if (false) ;
+        else if (str == "Bypass") type = Type::Bypass;
+        else if (str == "HighPass") type = Type::HighPass;
+        else if (str == "LowPass") type = Type::LowPass;
+        else if (str == "BandPassSkirt") type = Type::BandPassSkirt;
+        else if (str == "BandPass0dB") type = Type::BandPass0dB;
+        else if (str == "Notch") type = Type::Notch;
+        else if (str == "AllPass") type = Type::AllPass;
+        else if (str == "Peak") type = Type::Peak;
+        else if (str == "LowShelf") type = Type::LowShelf;
+        else if (str == "HighShelf") type = Type::HighShelf;
+        else return false;
+        return true;
+    }
+
     template <typename T>
     class Tuner
     {
