@@ -1,7 +1,7 @@
-#ifndef HEADER_gubg_order1_ExponentialMA_hpp_ALREADY_INCLUDED
-#define HEADER_gubg_order1_ExponentialMA_hpp_ALREADY_INCLUDED
+#ifndef HEADER_gubg_smooth_ExponentialMA_hpp_ALREADY_INCLUDED
+#define HEADER_gubg_smooth_ExponentialMA_hpp_ALREADY_INCLUDED
 
-namespace gubg { namespace order1 { 
+namespace gubg { namespace smooth { 
 
 	template <typename T>
 	class ExponentialMA
