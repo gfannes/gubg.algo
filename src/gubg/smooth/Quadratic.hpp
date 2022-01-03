@@ -8,6 +8,7 @@
 
 namespace gubg { namespace smooth { 
 
+
 	template <typename T>
 	class Quadratic
 	{
@@ -66,6 +67,7 @@ namespace gubg { namespace smooth {
 		{
 			history_.push_pop(v);
 			auto range = history_.range();
+			// @todo: Optimize via precomputing $inv(Xt.X).Xt$ and compute the different values of abc_ lazy
 			x_.multiply(xy_, range);
 			inv_xtx_.multiply(abc_, xy_);
 			return value();
