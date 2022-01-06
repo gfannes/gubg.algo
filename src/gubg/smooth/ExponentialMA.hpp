@@ -7,18 +7,19 @@ namespace gubg { namespace smooth {
 	class ExponentialMA
 	{
 	public:
-		ExponentialMA(T alpha): alpha_(alpha) {}
+		ExponentialMA(T alpha) {set_alpha(alpha);}
+
+		void set_alpha(T alpha) { alpha_ = alpha; }
 
 		T value() const {return value_;}
 
 		T operator()(T value)
 		{
-			return value_ = one_minus_alpha_*value_ + alpha_*value;
+			return value_ = value_ + alpha_*(value-value_);
 		}
 
 	private:
-		T alpha_ = 0;
-		T one_minus_alpha_ = 1.0-alpha_;
+		T alpha_;
 		T value_{};
 	};
 
