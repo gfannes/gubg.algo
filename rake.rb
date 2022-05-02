@@ -1,0 +1,2 @@
+namespace :algo do
+end
