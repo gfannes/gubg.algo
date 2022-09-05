@@ -1,12 +1,12 @@
 #ifndef HEADER_gubg_planning_Planning_hpp_ALREADY_INCLUDED
 #define HEADER_gubg_planning_Planning_hpp_ALREADY_INCLUDED
 
-#include "gubg/planning/Codes.hpp"
-#include "gubg/planning/Types.hpp"
-#include "gubg/planning/Task.hpp"
-#include "gubg/tree/dfs/Leafs.hpp"
-#include "gubg/OnlyOnce.hpp"
-#include "gubg/xml/Builder.hpp"
+#include <gubg/planning/Codes.hpp>
+#include <gubg/planning/Types.hpp>
+#include <gubg/planning/Task.hpp>
+#include <gubg/tree/dfs/Leafs.hpp>
+#include <gubg/OnlyOnce.hpp>
+#include <gubg/xml/Writer.hpp>
 #include <vector>
 #include <map>
 #include <set>
@@ -417,8 +417,8 @@ namespace gubg { namespace planning {
             };
             void streamHtml_(std::ostream &os) const
             {
-                using namespace gubg::xml::builder;
-                Tag html(os, "html", NoShortClose);
+                xml::Writer writer{os};
+                auto html = writer.tag("html");
                 auto body = html.tag("body");
                 {
                     auto h1 = body.tag("h1");
