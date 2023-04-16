@@ -21,7 +21,7 @@ namespace gubg { namespace graph {
     public:
         void clear();
 
-        void init(const AdjacencyLists &);
+        void init(const AdjacencyLists &, bool do_sort);
 
         bool valid() const { return !vertex__start_ix_.empty(); }
 

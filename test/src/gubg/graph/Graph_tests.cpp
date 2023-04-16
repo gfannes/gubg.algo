@@ -84,6 +84,7 @@ TEST_CASE("graph::Graph tests", "[ut][graph][Graph]")
     struct Scn
     {
         graph::AdjacencyLists als;
+        std::optional<std::size_t> vertex_count;
     };
     Scn scn;
 
@@ -118,12 +119,42 @@ TEST_CASE("graph::Graph tests", "[ut][graph][Graph]")
         scn.als[0] = {1};
         scn.als[1] = {0};
     }
+    SECTION("random")
+    {
+        scn.vertex_count = 1000000;
+        exp.vertex_count = 1000000;
+    }
+
+    if (scn.vertex_count)
+    {
+        const std::size_t v_count = *scn.vertex_count;
+        const graph::Vertex v_max = v_count - 1;
+
+        std::random_device rd;
+        std::mt19937 rng(rd());
+
+        for (auto v = 0; v < v_count; ++v)
+        {
+            auto &outs = scn.als[v];
+            const auto my_v_max = std::min<graph::Vertex>(v_max, v + 10);
+            auto v_prev = v;
+            while (v_prev < my_v_max && outs.size() < 10)
+            {
+                std::uniform_int_distribution<> uniform(v_prev + 1, my_v_max);
+
+                const auto v = uniform(rng);
+                outs.push_back(v);
+                v_prev = v;
+            }
+        }
+    }
 
     graph::Graph g;
-    g.init(scn.als);
+    g.init(scn.als, true);
     REQUIRE(g.valid());
     REQUIRE(g.vertex_count() == exp.vertex_count);
-    std::cout << g;
+    if (g.vertex_count() < 100)
+        std::cout << g;
 
     graph::search::Dependency depsearch;
     REQUIRE(depsearch.init(&g));
@@ -136,7 +167,8 @@ TEST_CASE("graph::Graph tests", "[ut][graph][Graph]")
     REQUIRE(topo_order_ok == exp.topo_order_ok);
     if (topo_order_ok)
     {
-        std::cout << "ST: " << hr(order_st) << std::endl;
+        if (g.vertex_count() < 100)
+            std::cout << "ST: " << hr(order_st) << std::endl;
 
         graph::Vertices order_mt;
         depsearch.reset();
@@ -149,7 +181,8 @@ TEST_CASE("graph::Graph tests", "[ut][graph][Graph]")
                 depsearch.done_mt(*v);
             }
         }
-        std::cout << "MT: " << hr(order_mt) << std::endl;
+        if (g.vertex_count() < 100)
+            std::cout << "MT: " << hr(order_mt) << std::endl;
 
         REQUIRE(order_st == order_mt);
     }

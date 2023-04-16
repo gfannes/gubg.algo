@@ -12,7 +12,7 @@ namespace gubg { namespace graph {
         *this = Graph{};
     }
 
-    void Graph::init(const AdjacencyLists &als)
+    void Graph::init(const AdjacencyLists &als, bool do_sort)
     {
         clear();
 
@@ -41,11 +41,15 @@ namespace gubg { namespace graph {
             while (vv <= v)
                 vertex__start_ix_[vv++] = start_ix;
 
+            const auto begin = &adjacencies_[start_ix];
             for (auto v : al)
             {
                 adjacencies_[start_ix++] = v;
                 ++vertex__indegree_[v];
             }
+            const auto end = &adjacencies_[start_ix];
+            if (do_sort)
+                std::sort(begin, end);
         }
         assert(start_ix == edge_count);
 

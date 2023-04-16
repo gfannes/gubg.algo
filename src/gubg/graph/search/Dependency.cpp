@@ -63,8 +63,6 @@ namespace gubg { namespace graph { namespace search {
 
     bool Dependency::next_mt(Vertex_opt &v)
     {
-        S("");
-
         std::unique_lock<std::mutex> lock{mutex_};
 
         assert(valid());
@@ -75,14 +73,12 @@ namespace gubg { namespace graph { namespace search {
             {
                 v.reset();
                 const bool still_processing = (processing_count_ > 0);
-                L(C(still_processing));
                 return still_processing;
             }
             unlocked_.swap(unlocked_tmp_);
         }
 
         v = unlocked_.back();
-        L(C(*v));
         unlocked_.pop_back();
         ++processing_count_;
 
