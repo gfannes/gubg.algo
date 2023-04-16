@@ -30,12 +30,14 @@ namespace gubg { namespace graph { namespace search {
             if (is_unlocked_(v))
                 unlocked_tmp_.push_back(v);
         }
+
+        processing_count_ = 0;
     }
 
     bool Dependency::topo_order(Vertices &order)
     {
         order.resize(0);
-        return each([&](Vertex v){order.push_back(v);});
+        return each([&](Vertex v) { order.push_back(v); });
     }
 
     bool Dependency::next(Vertex &v)
@@ -57,6 +59,49 @@ namespace gubg { namespace graph { namespace search {
         });
 
         return true;
+    }
+
+    bool Dependency::next_mt(Vertex_opt &v)
+    {
+        S("");
+
+        std::unique_lock<std::mutex> lock{mutex_};
+
+        assert(valid());
+
+        if (unlocked_.empty())
+        {
+            if (unlocked_tmp_.empty())
+            {
+                v.reset();
+                const bool still_processing = (processing_count_ > 0);
+                L(C(still_processing));
+                return still_processing;
+            }
+            unlocked_.swap(unlocked_tmp_);
+        }
+
+        v = unlocked_.back();
+        L(C(*v));
+        unlocked_.pop_back();
+        ++processing_count_;
+
+        return true;
+    }
+
+    void Dependency::done_mt(Vertex v)
+    {
+        std::unique_lock<std::mutex> lock{mutex_};
+
+        assert(valid());
+
+        g_->each_out(v, [&](auto v_dst) {
+            ++vertex__incount_[v_dst];
+            if (is_unlocked_(v_dst))
+                unlocked_tmp_.push_back(v_dst);
+        });
+
+        --processing_count_;
     }
 
     // Privates

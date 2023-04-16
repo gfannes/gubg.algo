@@ -128,10 +128,29 @@ TEST_CASE("graph::Graph tests", "[ut][graph][Graph]")
     graph::search::Dependency depsearch;
     REQUIRE(depsearch.init(&g));
     REQUIRE(depsearch.valid());
+    depsearch.reset();
+    REQUIRE(depsearch.valid());
 
-    graph::Vertices order;
-    const auto topo_order_ok = depsearch.topo_order(order);
+    graph::Vertices order_st;
+    const auto topo_order_ok = depsearch.topo_order(order_st);
     REQUIRE(topo_order_ok == exp.topo_order_ok);
     if (topo_order_ok)
-        std::cout << hr(order) << std::endl;
+    {
+        std::cout << "ST: " << hr(order_st) << std::endl;
+
+        graph::Vertices order_mt;
+        depsearch.reset();
+        REQUIRE(depsearch.valid());
+        for (graph::Vertex_opt v; depsearch.next_mt(v);)
+        {
+            if (v)
+            {
+                order_mt.push_back(*v);
+                depsearch.done_mt(*v);
+            }
+        }
+        std::cout << "MT: " << hr(order_mt) << std::endl;
+
+        REQUIRE(order_st == order_mt);
+    }
 }

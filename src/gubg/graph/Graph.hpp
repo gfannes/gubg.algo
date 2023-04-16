@@ -7,10 +7,12 @@
 #include <cstdint>
 #include <map>
 #include <vector>
+#include <optional>
 
 namespace gubg { namespace graph {
 
     using Vertex = std::size_t;
+    using Vertex_opt = std::optional<Vertex>;
     using Vertices = std::vector<Vertex>;
     using AdjacencyLists = std::map<Vertex, Vertices>;
 

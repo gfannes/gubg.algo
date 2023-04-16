@@ -6,6 +6,10 @@
 #include <gubg/hr.hpp>
 #include <gubg/mss.hpp>
 
+#include <atomic>
+#include <mutex>
+#include <optional>
+
 namespace gubg { namespace graph { namespace search {
 
     class Dependency
@@ -17,6 +21,9 @@ namespace gubg { namespace graph { namespace search {
         void reset();
 
         bool next(Vertex &);
+
+        bool next_mt(Vertex_opt &);
+        void done_mt(Vertex);
 
         template<typename Ftor>
         bool each(Ftor &&ftor)
@@ -43,6 +50,9 @@ namespace gubg { namespace graph { namespace search {
         std::vector<std::size_t> vertex__incount_;
         Vertices unlocked_;
         Vertices unlocked_tmp_;
+
+        std::size_t processing_count_;
+        std::mutex mutex_;
     };
 
 }}} // namespace gubg::graph::search
