@@ -1,7 +1,11 @@
-#include <catch.hpp>
 #include <gubg/graph/Graph.hpp>
 #include <gubg/graph/detail/Edge.hpp>
+#include <gubg/hr.hpp>
+
+#include <catch.hpp>
+
 #include <iostream>
+
 using namespace gubg;
 
 namespace {
@@ -85,6 +89,7 @@ TEST_CASE("graph::Graph tests", "[ut][graph][Graph]")
     struct Exp
     {
         std::size_t vertex_count = 0;
+        bool topo_order_ok = true;
     };
     Exp exp;
 
@@ -97,10 +102,31 @@ TEST_CASE("graph::Graph tests", "[ut][graph][Graph]")
         scn.als[0] = {1, 2};
         scn.als[1] = {2};
     }
+    SECTION("b")
+    {
+        exp.vertex_count = 3;
+
+        scn.als[0] = {1, 2};
+        scn.als[2] = {1};
+    }
+    SECTION("c")
+    {
+        exp.vertex_count = 2;
+        exp.topo_order_ok = false;
+
+        scn.als[0] = {1};
+        scn.als[1] = {0};
+    }
 
     graph::Graph g;
     g.init(scn.als);
     REQUIRE(g.valid());
     REQUIRE(g.vertex_count() == exp.vertex_count);
     std::cout << g;
+
+    graph::Vertices order;
+    const auto topo_order_ok = g.topo_order(order);
+    REQUIRE(topo_order_ok == exp.topo_order_ok);
+    if (topo_order_ok)
+        std::cout << hr(order) << std::endl;
 }
