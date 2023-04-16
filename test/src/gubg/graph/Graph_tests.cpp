@@ -1,5 +1,6 @@
 #include <gubg/graph/Graph.hpp>
 #include <gubg/graph/detail/Edge.hpp>
+#include <gubg/graph/search/Dependency.hpp>
 #include <gubg/hr.hpp>
 
 #include <catch.hpp>
@@ -124,8 +125,12 @@ TEST_CASE("graph::Graph tests", "[ut][graph][Graph]")
     REQUIRE(g.vertex_count() == exp.vertex_count);
     std::cout << g;
 
+    graph::search::Dependency depsearch;
+    REQUIRE(depsearch.init(&g));
+    REQUIRE(depsearch.valid());
+
     graph::Vertices order;
-    const auto topo_order_ok = g.topo_order(order);
+    const auto topo_order_ok = depsearch.topo_order(order);
     REQUIRE(topo_order_ok == exp.topo_order_ok);
     if (topo_order_ok)
         std::cout << hr(order) << std::endl;

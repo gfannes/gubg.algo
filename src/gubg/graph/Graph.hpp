@@ -29,6 +29,12 @@ namespace gubg { namespace graph {
             return vertex__start_ix_.size() - 1;
         }
 
+        std::size_t indegree(Vertex v) const
+        {
+            assert(v < vertex__indegree_.size());
+            return vertex__indegree_[v];
+        }
+
         template<typename Ftor>
         void each_out(Vertex v, Ftor &&ftor) const
         {
@@ -38,17 +44,12 @@ namespace gubg { namespace graph {
                 ftor(adjacencies_[ix]);
         }
 
-        bool topo_order(Vertices &) const;
-
         void stream(naft::Node &) const;
 
     private:
         std::vector<Vertex> adjacencies_;
         std::vector<Vertex> vertex__start_ix_;
         std::vector<std::size_t> vertex__indegree_;
-        mutable std::vector<std::size_t> vertex__incount_;
-        mutable Vertices unlocked_;
-        mutable Vertices unlocked_tmp_;
     };
 
     inline std::ostream &operator<<(std::ostream &os, const Graph &g)
