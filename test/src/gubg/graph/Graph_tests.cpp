@@ -2,6 +2,7 @@
 #include <gubg/graph/detail/Edge.hpp>
 #include <gubg/graph/search/Dependency.hpp>
 #include <gubg/hr.hpp>
+#include <gubg/thread/Pool.hpp>
 
 #include <catch.hpp>
 
@@ -135,10 +136,11 @@ TEST_CASE("graph::Graph tests", "[ut][graph][Graph]")
 
         for (auto v = 0; v < v_count; ++v)
         {
+            const auto n = 20;
             auto &outs = scn.als[v];
-            const auto my_v_max = std::min<graph::Vertex>(v_max, v + 10);
+            const auto my_v_max = std::min<graph::Vertex>(v_max, v + n);
             auto v_prev = v;
-            while (v_prev < my_v_max && outs.size() < 10)
+            while (v_prev < my_v_max && outs.size() < n)
             {
                 std::uniform_int_distribution<> uniform(v_prev + 1, my_v_max);
 
@@ -185,5 +187,51 @@ TEST_CASE("graph::Graph tests", "[ut][graph][Graph]")
             std::cout << "MT: " << hr(order_mt) << std::endl;
 
         REQUIRE(order_st == order_mt);
+
+        graph::Vertices order_mt2;
+        {
+            std::mutex mutex;
+            auto process_vertex = [&](graph::Vertex v) {
+                S("process_vertex");
+                L(C(v));
+                std::unique_lock<std::mutex> lock{mutex};
+                order_mt2.push_back(v);
+                depsearch.done_mt(v);
+            };
+
+            thread::Pool<graph::Vertex> tp{10, process_vertex};
+
+            depsearch.reset();
+            REQUIRE(depsearch.valid());
+            graph::Vertices vs;
+            for (graph::Vertex_opt v; depsearch.next_mt(v);)
+            {
+                if (v)
+                {
+                    vs.resize(0);
+                    vs.push_back(*v);
+                    while (depsearch.next_mt(v) && v)
+                        vs.push_back(*v);
+
+                    if (vs.size() >= tp.size())
+                        tp.push_many(vs);
+                    else
+                    {
+                        for (auto v : vs)
+                            tp.push_one(v);
+                    }
+                }
+            }
+        }
+        if (g.vertex_count() < 100)
+            std::cout << "MT: " << hr(order_mt2) << std::endl;
+
+        REQUIRE(order_mt2.size() == order_st.size());
+
+        std::sort(RANGE(order_st));
+        std::sort(RANGE(order_mt));
+        std::sort(RANGE(order_mt2));
+        REQUIRE(order_mt == order_st);
+        REQUIRE(order_mt2 == order_st);
     }
 }
