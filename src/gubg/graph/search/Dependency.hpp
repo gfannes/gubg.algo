@@ -1,5 +1,5 @@
-#ifndef HEADER_gubg_graph_search_Dependency_hpp_ALREAD_INCLUDED
-#define HEADER_gubg_graph_search_Dependency_hpp_ALREAD_INCLUDED
+#ifndef HEADER_gubg_graph_search_Dependency_hpp_ALREADY_INCLUDED
+#define HEADER_gubg_graph_search_Dependency_hpp_ALREADY_INCLUDED
 
 #include <gubg/debug.hpp>
 #include <gubg/graph/Graph.hpp>
